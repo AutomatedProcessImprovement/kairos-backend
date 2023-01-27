@@ -1,0 +1,279 @@
+{
+    "kpi": { 
+      "name": "duration",
+      "measurement": "days",
+      "value": 14
+    },
+  
+    "cases": [
+      {
+        "_id": 1,
+        "applicant" : "Jane Doe",
+        "amount": 5813.21,
+        "purpose": "Motor",
+        "activities": [
+          {
+            "name": "Start Event",
+            "timestamp": "2022-12-12T12:37:00"
+          },
+          {
+            "name": "Register Claim",
+            "timestamp": "2022-12-12T12:37:00",
+            "resource": {
+              "name": "Lexi Larsen",
+              "role": "Claims Administrator",
+              "available": true
+            }
+          },
+          {
+            "name": "Quick Assessment",
+            "timestamp": "2022-12-14T10:30:00",
+            "resource": {
+              "name": "Lexi Larsen",
+              "role": "Claims Administrator",
+              "available": true
+            }
+          },
+          {
+            "name": "Finalize Assessment",
+            "timestamp": "2022-12-18T14:31:00",
+            "resource": {
+              "name": "Karter Chapman",
+              "role": "Claims Officer",
+              "available": true
+            }
+          }
+        ],
+        "prediction": {
+          "name": "Prepare Claim Settlement",
+          "effect": 20,
+          "probability": 56.7,
+          "uncertainty": 8.3
+        },
+        "recommendations": [
+          {
+            "name": "Approve Assessment",
+            "similarCases": [
+              {
+                "_id": 2,
+                "similarityRate": 97.6
+              },
+              {
+                "_id": 3,
+                "similarityRate": 80.5
+              }
+            ],
+            "accuracy": 5.6,
+            "recall": 7.6,
+            "precision": 2.3,
+            "effect": 13,
+            "probability": 34.7,
+            "uncertainty": 4.5
+          }
+        ]
+      },
+
+
+          {
+        "_id": 2,
+        "amount": 495.21,
+        "applicant" : "Jane Doe",
+        "purpose": "Motor",
+        "activities": [
+          {
+            "name": "Start Event",
+            "timestamp": "2022-12-14T10:30:00"
+          },
+          {
+            "name": "Register Claim",
+            "timestamp": "2022-12-14T10:30:00",
+            "resource": {
+              "name": "Lexi Larsen",
+              "role": "Claims Administrator",
+              "available": true
+            }
+          },
+          {
+            "name": "Quick Assessment",
+            "timestamp": "2022-12-14T16:34:00",
+            "resource": {
+              "name": "Lexi Larsen",
+              "role": "Claims Administrator",
+              "available": true
+            }
+          },
+          {
+            "name": "Finalize Assessment",
+            "timestamp": "2022-12-16T10:30:00",
+            "resource": {
+              "name": "Karter Chapman",
+              "role": "Claims Officer",
+              "available": true
+            }
+          },
+          {
+            "name": "Amend Assessment",
+            "timestamp": "2022-12-18T10:30:00",
+            "resource": {
+              "name": "Karter Chapman",
+              "role": "Claims Officer",
+              "available": true
+            }
+          },
+          {
+            "name": "Finalize Assessment",
+            "timestamp": "2022-12-19T10:30:00",
+            "resource": {
+              "name": "Karter Chapman",
+              "role": "Claims Officer",
+              "available": true
+            }
+          }
+        ],
+        "prediction": {
+          "name": "Amend Assessment",
+          "effect": 15,
+          "probability": 56.7,
+          "uncertainty": 8.3
+        },
+        "recommendations": [
+          {
+            "name": "Approve Assessment",
+            "similarCases": [
+              {
+                "_id": 1,
+                "similarityRate": 97.6
+              }
+            ],
+            "accuracy": 5.6,
+                      "recall": 7.6,
+                      "precision": 2.3,
+            "effect": 12,
+            "probability": 34.7,
+            "uncertainty": 4.5
+          },
+         {
+            "name": "Prepare Claim Settlement",
+            "similarCases": [
+              {
+                "_id": 2,
+                "similarityRate": 97.6
+              },
+              {
+                "_id": 3,
+                "similarityRate": 80.5
+              }
+            ],
+            "accuracy": 5.6,
+                      "recall": 7.6,
+                      "precision": 2.3,
+            "effect": 10,
+            "probability": 34.7,
+            "uncertainty": 4.5
+          }
+        ]
+      },
+
+      {
+        "_id": 3,
+        "amount": 2298.27,
+        "applicant" : "Jane Doe",
+        "purpose": "Motor",
+        "activities": [
+          {
+            "name": "Start Event",
+            "timestamp": "2022-12-18T10:30:00"
+          },
+          {
+            "name": "Register Claim",
+            "timestamp": "2022-12-18T10:30:00",
+            "resource": {
+              "name": "Lexi Larsen",
+              "role": "Claims Administrator",
+              "available": true
+            }
+          },
+          {
+            "activityId": 2,
+            "name": "Quick Assessment",
+            "timestamp": "2022-12-19T10:30:00",
+            "resource": {
+              "name": "Lexi Larsen",
+              "role": "Claims Administrator",
+              "available": true
+            }
+          }
+        ],
+        "prediction": {
+          "name": "Finalize Assessment",
+          "effect": 7,
+          "probability": 56.7,
+          "uncertainty": 8.3
+        },
+        "recommendations": [
+          {
+            "name": "Approve Assessment",
+            "similarCases": [
+              {
+                "_id": 2,
+                "similarityRate": 97.6
+              }
+            ],
+            "accuracy": 5.6,
+            "recall": 7.6,
+            "precision": 2.3,
+            "effect": 7,
+            "probability": 34.7,
+            "uncertainty": 4.5
+          }
+        ]
+      },
+      {
+        "_id": 4, 
+        "applicant" : "Jane Doe",
+        "amount": 6722.21,
+        "purpose": "Motor",
+        "activities": [
+          {
+            "name": "Start Event",
+            "timestamp": "2022-12-12T12:37:00"
+          },
+          {
+            "name": "Register Claim",
+            "timestamp": "2022-12-12T12:37:00",
+            "resource": {
+              "name": "Lexi Larsen",
+              "role": "Claims Administrator",
+              "available": true
+            }
+          },
+          {
+            "name": "Quick Assessment",
+            "timestamp": "2022-12-14T10:30:00",
+            "resource": {
+              "name": "Lexi Larsen",
+              "role": "Claims Administrator",
+              "available": true
+            }
+          },
+          {
+            "name": "Finalize Assessment",
+            "timestamp": "2022-12-18T14:31:00",
+            "resource": {
+              "name": "Karter Chapman",
+              "role": "Claims Officer",
+              "available": true
+            }
+          },
+          {
+            "name": "End Event",
+            "timestamp": "2022-12-18T14:31:00"
+          }
+        ],
+       
+        "recommendations": [
+          
+        ]
+      }
+    ]
+  }
