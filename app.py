@@ -3,7 +3,7 @@ from flask_cors import CORS
 from pymongo import MongoClient
 from bson.objectid import ObjectId
 import gridfs
-import csv
+import string
 import json
 from flask_caching import Cache
 
@@ -48,37 +48,34 @@ def upload_file():
         return Response('No file found',400)
     file = request.files['file']
     if file and allowed_file(file.filename):
-        file_id = fs.put(file)
-        print(file_id)
-        res = jsonify(fileId = str(file_id))
-        return res
+        file_id = fs.put(file, delimiter = request.form.get('delimiter'))
+        return jsonify(fileId = str(file_id))
     return Response('Incorrect file extension',400)
 
-@app.route('/parse/<file_id>', methods=['POST'])
+@app.route('/parse/<file_id>', methods=['PUT'])
 def parse_file(file_id):
-    print(file_id)
-    delimiter = request.form.get('delimiter')
-    file = fs.find({'_id': ObjectId(file_id)})
-    print(file)
+    file = fs.get(ObjectId(file_id))
+    delimiter = file.delimiter
     if not file:
         return Response(f"File with id {file_id} not found",404)
     rows = []
-    data = file.read()
+    header = []
     for i in range(10):
-        print(file.readline())
-    csv_reader = csv.reader(data, delimiter)
-    header = next(csv_reader)
-    ind = 0
-    for row in csv_reader:
-        rows.append(row)
-        ind += 1
-        if ind == 10:
-            break
-    return Response({'header': header, 'rows': rows},200)
+        if i == 0:
+            header = str(file.readline().strip()).translate(str.maketrans('','','\"\''))
+            header = header[1:]
+            header = header.split(delimiter)
+        else:
+            row = str(file.readline().strip()).translate(str.maketrans('','','\"\''))
+            row = row[1:]
+            row = row.split(delimiter)
+            rows.append([row])
+    print(header)
+    return jsonify(header = header, rows = list(rows))
 
 @app.route('/update/<file_id>', methods=['POST'])
 def update_types(file_id):
-    file = fs.find({'_id': ObjectId(file_id)})
+    file = fs.get(ObjectId(file_id))
     if not file:
         return Response(f"File with id {file_id} not found",404)
     types = request.form.get('types')
