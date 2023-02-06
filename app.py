@@ -3,18 +3,13 @@ from flask_cors import CORS
 from pymongo import MongoClient
 from bson.objectid import ObjectId
 import json
-from flask_caching import Cache
 import datetime
 import pandas as pd
 import os
 from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
-CORS(app, resources={r'/*': {'origins': '*'}})
-app.config['CORS_HEADERS'] = 'Content-Type'
-app.config['CACHE_TYPE'] = 'SimpleCache'
-
-cache = Cache(app)
+CORS(app)
 
 client = MongoClient('localhost', 27017)
 db = client.flask_db
@@ -61,7 +56,7 @@ def upload_file():
     file_id = files.insert_one({'path': path_to_file,'delimiter': request.form.get('delimiter'), 'datetime': datetime.datetime.now()}).inserted_id
     return jsonify(fileId = str(file_id))
 
-@app.route('/parse/<file_id>', methods=['PUT'])
+@app.route('/parse/<file_id>', methods=['GET'])
 def parse_file(file_id):
     try:
         file = files.find_one({"_id": ObjectId(file_id)})
@@ -74,23 +69,27 @@ def parse_file(file_id):
 
 @app.route('/update/<file_id>', methods=['POST'])
 def update_types(file_id):
-    types = request.form.get('types')
+    types = request.get_json()
     try:
         files.find_one_and_update({"_id": ObjectId(file_id)},{"$set":{"types": types}})
     except:
         return Response(f'File with {file_id} not found',404)
-    # TODO send file and types to zhaosi
+    # # TODO send file and types to zhaosi
     return Response('Types updated successfully',200)
 
 @app.route('/parameters/<file_id>', methods=['POST'])
 def parameters(file_id):
-    positive_outcome = request.form.get('positive_outcome')
-    treatment = request.form.get('treatment')
+    positive_outcome = request.get_json().get('positive_outcome')
+    treatment = request.get_json().get('treatment')
+    alarm_probability = request.get_json().get('alarm_probability')
+    case_completion = request.get_json().get('case_completion')
     try:
         files.find_one_and_update({"_id": ObjectId(file_id)},
-                                    {"$set":{
+                                    {"$set": {
                                         "positiveOutcome": positive_outcome,
-                                        "treatment": treatment}})
+                                        "treatment": treatment,
+                                        "alarmProbability": alarm_probability,
+                                        'caseCompletion': case_completion}})
     except:
         return Response(f"File with id {file_id} not found",404)
 
@@ -99,17 +98,27 @@ def parameters(file_id):
 
 @app.route('/eventlogs')
 def get_eventlogs():
-    fs = files.find({})
-    # [print(l) for l in f]
-    logs = [{"_id": str(log["_id"]),'filename': log["path"].split('_',1)[1], 'uploadDate': log['datetime']} for log in fs]
-    # print(list(fs))
-    return jsonify(eventlogs = logs)
+    try: 
+        fs = files.find({})
+        logs = [{"_id": str(log["_id"]),
+                'filename': log["path"].split('_',1)[1], 
+                'uploadDate': log['datetime'],
+                'positiveOutcome': log['positiveOutcome'],
+                'treatment': log['treatment'],
+                'alarmProbability': log['alarmProbability'],
+                'caseCompletion' : log['caseCompletion']} for log in fs]
+        return jsonify(eventlogs = logs)
+    except:
+        return Response("Event logs not found",404)
 
 @app.route('/eventlogs/<file_id>')
 def get_eventlog(file_id):
-    log = files.find_one({"_id": ObjectId(file_id)})
-    e = {"_id": str(log['_id']),'filename': log["path"].split('_',1)[1],'uploadDate' : log['datetime']}
-    return jsonify(eventlog = e)
+    try:
+        log = files.find_one({"_id": ObjectId(file_id)})
+        log['_id'] = str(log['_id'])
+        return jsonify(eventlog = log)
+    except:
+        return Response(f'Event log with {file_id} not found',404)
 
 @app.route('/cases')
 def get_cases():
