@@ -5,7 +5,6 @@ from bson.objectid import ObjectId
 import json
 import requests
 import datetime
-from io import BufferedReader
 
 app = Flask(__name__)
 CORS(app)
@@ -50,8 +49,11 @@ def upload_file():
         return Response('Incorrect file extension',400)
     delimiter = request.form.get('delimiter')
     res = requests.post(PRCORE_BASE_URL + '/event_log', files={'file': (file.filename, file.stream, file.content_type), 'separator': delimiter}, headers=PRCORE_HEADERS)
-    res_dict = res.json()
-    print(res_dict)
+    try:
+        res_dict = res.json()
+    except:
+        print(res)
+        return Response('Something went wrong with PrCore',500)
     file_id = files.insert_one({'filename': file.filename, 
                                 'event_log_id': res_dict['event_log_id'], 
                                 'columns_header': res_dict['columns_header'], 
@@ -81,17 +83,16 @@ def update_types(file_id):
     except:
         return Response(f'File with {file_id} not found',404)
     event_log_id = file['event_log_id']
-    print(types)
-    print(type(types))
     res = requests.put(PRCORE_BASE_URL + f'/event_log/{event_log_id}', json=types, headers=PRCORE_HEADERS)
-    print(res)
     try:
         res_dict = res.json()
     except:
+        print(res)
         return Response('Something went wrong with PrCore',500)
     activities = list(res_dict['activities_count'].keys())
     files.update_one({'_id': file['_id']},{"$set": {
                                         "activities": activities,
+                                        "columns_definition": types,
                                         "outcome_selections": res_dict['outcome_selections'],
                                         "treatment_selections": res_dict['treatment_selections']}})
     return Response('Types updated successfully',200)
@@ -109,12 +110,17 @@ def parameters(file_id):
     event_log_id = file['event_log_id']
     res = requests.post(PRCORE_BASE_URL + '/project', 
                         headers=PRCORE_HEADERS, 
-                        data={
+                        json={
                                 'event_log_id': event_log_id,
                                 'positive_outcome': [[positive_outcome]],
                                 'treatment': [[treatment]]
                                 })
-    project_id = res.json()['project_id']
+    try:
+        res_dict = res.json()
+        project_id = res_dict['project']['id']
+    except:
+        print(res)
+        return Response('Something went wrong with PrCore',500)
     files.find_one_and_update({"_id": ObjectId(file_id)},
                                 {"$set": {
                                     "project_id": project_id,
