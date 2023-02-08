@@ -25,7 +25,7 @@ def initial():
     global kpi
     with open('data.json') as f:
         data = json.load(f)
-        kpi = data['kpi']
+        kpi = data.get('kpi')
         for case in data['cases']:
             case["status"] = "Completed" if [obj for obj in case["activities"] if obj["name"] == "End Event"] else "Open"
             try:
@@ -55,10 +55,10 @@ def upload_file():
         print(res)
         return Response('Something went wrong with PrCore',500)
     file_id = files.insert_one({'filename': file.filename, 
-                                'event_log_id': res_dict['event_log_id'], 
-                                'columns_header': res_dict['columns_header'], 
-                                'columns_definition' : res_dict['columns_inferred_definition'],
-                                'columns_data': res_dict['columns_data'], 
+                                'event_log_id': res_dict.get('event_log_id'), 
+                                'columns_header': res_dict.get('columns_header'), 
+                                'columns_definition' : res_dict.get('columns_inferred_definition'),
+                                'columns_data': res_dict.get('columns_data'), 
                                 'delimiter': delimiter, 
                                 'datetime': datetime.datetime.now()}).inserted_id
     return jsonify(fileId = str(file_id))
@@ -68,9 +68,9 @@ def upload_file():
 def parse_file(file_id):
     try:
         file = files.find_one({"_id": ObjectId(file_id)})
-        header = file['columns_header']
-        types = file['columns_definition']
-        rows = file['columns_data']
+        header = file.get('columns_header')
+        types = file.get('columns_definition')
+        rows = file.get('columns_data')
         return jsonify(header = header, rows = rows, types = types)
     except:
         return Response(f"File with id {file_id} not found",404)
@@ -82,15 +82,15 @@ def update_types(file_id):
         file = files.find_one({"_id": ObjectId(file_id)})
     except:
         return Response(f'File with {file_id} not found',404)
-    event_log_id = file['event_log_id']
+    event_log_id = file.get('event_log_id')
     res = requests.put(PRCORE_BASE_URL + f'/event_log/{event_log_id}', json=types, headers=PRCORE_HEADERS)
     try:
         res_dict = res.json()
     except:
         print(res)
         return Response('Something went wrong with PrCore',500)
-    activities = list(res_dict['activities_count'].keys())
-    files.update_one({'_id': file['_id']},{"$set": {
+    activities = list(res_dict.get('activities_count').keys())
+    files.update_one({'_id': file.get('_id')},{"$set": {
                                         "activities": activities,
                                         "columns_definition": types,
                                         "outcome_selections": res_dict['outcome_selections'],
@@ -107,7 +107,7 @@ def parameters(file_id):
         file = files.find_one({"_id": ObjectId(file_id)})
     except:
         return Response(f'File with {file_id} not found',404)
-    event_log_id = file['event_log_id']
+    event_log_id = file.get('event_log_id')
     res = requests.post(PRCORE_BASE_URL + '/project', 
                         headers=PRCORE_HEADERS, 
                         json={
@@ -117,7 +117,7 @@ def parameters(file_id):
                                 })
     try:
         res_dict = res.json()
-        project_id = res_dict['project']['id']
+        project_id = res_dict.get('project',{}).get('id')
     except:
         print(res)
         return Response('Something went wrong with PrCore',500)
@@ -134,13 +134,13 @@ def parameters(file_id):
 def get_eventlogs():
     try: 
         fs = files.find({})
-        logs = [{"_id": str(log['_id']),
-                'filename': log['filename'], 
-                'datetime': log['datetime'],
-                'positiveOutcome': log['positive_outcome'],
-                'treatment': log['treatment'],
-                'alarmProbability': log['alarm_probability'],
-                'caseCompletion' : log['case_completion']} for log in fs]
+        logs = [{"_id": str(log.get('_id')),
+                'filename': log.get('filename'), 
+                'datetime': log.get('datetime'),
+                'positiveOutcome': log.get('positive_outcome'),
+                'treatment': log.get('treatment'),
+                'alarmProbability': log.get('alarm_probability'),
+                'caseCompletion' : log.get('case_completion')} for log in fs]
         return jsonify(eventlogs = logs)
     except:
         return Response("Event logs not found",404)
@@ -149,7 +149,7 @@ def get_eventlogs():
 def get_eventlog(file_id):
     try:
         log = files.find_one({"_id": ObjectId(file_id)})
-        log['_id'] = str(log['_id'])
+        log['_id'] = str(log.get('_id'))
         return jsonify(eventlog = log)
     except:
         return Response(f'Event log with {file_id} not found',404)
@@ -161,10 +161,9 @@ def get_cases():
     return jsonify(kpi = kpi, cases = list(c))
 
 @app.route('/cases/<case_id>')
-# @cache.cached(timeout=50)
 def get_case(case_id):
     global kpi
-    c = [obj for obj in list(cases.find({})) if str(obj["_id"]) == str(case_id)][0]
+    c = [obj for obj in list(cases.find({})) if str(obj.get("_id")) == str(case_id)][0]
     return jsonify(kpi = kpi, case = c)
 
 
