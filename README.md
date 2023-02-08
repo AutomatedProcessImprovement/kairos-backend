@@ -9,7 +9,20 @@ This is the backend of Kairos - a tool for visualising prescriptive process moni
 
 ### Creates a virtual environment
 ```
-python venv venv
+python -m venv venv
+```
+
+### Starts a virtual environment
+
+#### Windows
+```
+.\venv\Scripts\activate
+```
+
+#### macOS/Linux
+
+```
+. venv/bin/activate
 ```
 
 ### Installs all the requirements
