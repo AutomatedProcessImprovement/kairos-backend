@@ -100,7 +100,6 @@ def update_types(file_id):
         col = list(df[ind])
         val = max(set(col), key = col.count)
         dic[attr] = val
-    print(dic)
     files.update_one({'_id': file.get('_id')},{"$set": {
                                         "activities": activities,
                                         "columns_definition": types,
@@ -148,6 +147,23 @@ def define_parameters(file_id):
                                     "alarm_probability": alarm_probability,
                                     "case_completion": case_completion}})
     return Response('Parameters saved successfully',200)
+
+@app.route('/project/<file_id>/status')
+def get_project_status(file_id):
+    try: 
+        log = files.find_one({"_id": ObjectId(file_id)})
+    except:
+        return Response("Event log not found",404)
+    project_id = log.get('project_id')
+    res = requests.get(PRCORE_BASE_URL + f'/project/{project_id}', headers=PRCORE_HEADERS)
+    try:
+        res_dict = res.json()
+    except:
+        print(res)
+        return Response("Something went wrong with PrCore",500)
+    status = res_dict.get('project',{}).get('status')
+    return jsonify(status = status)
+
 
 @app.route('/eventlogs')
 def get_eventlogs():
