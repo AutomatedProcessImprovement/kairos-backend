@@ -5,6 +5,7 @@ from bson.objectid import ObjectId
 import json
 import requests
 import datetime
+import numpy as np
 
 app = Flask(__name__)
 CORS(app)
@@ -77,7 +78,8 @@ def parse_file(file_id):
 
 @app.route('/update/<file_id>', methods=['POST'])
 def update_types(file_id):
-    types = request.get_json()
+    types = request.get_json().get('types')
+    case_attributes = request.get_json().get('case_attributes')
     try:
         file = files.find_one({"_id": ObjectId(file_id)})
     except:
@@ -90,9 +92,19 @@ def update_types(file_id):
         print(res)
         return Response('Something went wrong with PrCore',500)
     activities = list(res_dict.get('activities_count').keys())
+    dic = {}
+    for attr in case_attributes:
+        ind = file.get('columns_header').index(attr)
+        df = np.array(file.get('columns_data'))
+        df = df.transpose()
+        col = list(df[ind])
+        val = max(set(col), key = col.count)
+        dic[attr] = val
+    print(dic)
     files.update_one({'_id': file.get('_id')},{"$set": {
                                         "activities": activities,
                                         "columns_definition": types,
+                                        "case_attributes": dic,
                                         "outcome_selections": res_dict['outcome_selections'],
                                         "treatment_selections": res_dict['treatment_selections']}})
     return Response('Types updated successfully',200)
