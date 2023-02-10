@@ -105,12 +105,12 @@ def update_types(file_id):
                                         "activities": activities,
                                         "columns_definition": types,
                                         "case_attributes": dic,
-                                        "outcome_selections": res_dict['outcome_selections'],
-                                        "treatment_selections": res_dict['treatment_selections']}})
+                                        "outcome_selections": res_dict.get('outcome_selections'),
+                                        "treatment_selections": res_dict.get('treatment_selections')}})
     return Response('Types updated successfully',200)
 
 @app.route('/parameters/<file_id>', methods=['POST'])
-def parameters(file_id):
+def define_parameters(file_id):
     positive_outcome = request.get_json().get('positive_outcome')
     treatment = request.get_json().get('treatment')
     alarm_probability = request.get_json().get('alarm_probability')
@@ -120,19 +120,26 @@ def parameters(file_id):
     except:
         return Response(f'File with {file_id} not found',404)
     event_log_id = file.get('event_log_id')
-    res = requests.post(PRCORE_BASE_URL + '/project', 
+    data = {
+            'event_log_id': event_log_id,
+            'positive_outcome': [[positive_outcome]],
+            'treatment': [[treatment]]
+            }
+    project_id = file.get('project_id')
+    if project_id:
+        res = requests.put(PRCORE_BASE_URL + f'/project/{project_id}/definition', 
                         headers=PRCORE_HEADERS, 
-                        json={
-                                'event_log_id': event_log_id,
-                                'positive_outcome': [[positive_outcome]],
-                                'treatment': [[treatment]]
-                                })
+                        json=data)
+    else:
+        res = requests.post(PRCORE_BASE_URL + '/project', 
+                        headers=PRCORE_HEADERS, 
+                        json=data)
     try:
         res_dict = res.json()
-        project_id = res_dict.get('project',{}).get('id')
     except:
         print(res)
         return Response('Something went wrong with PrCore',500)
+    project_id = res_dict.get('project',{}).get('id')
     files.find_one_and_update({"_id": ObjectId(file_id)},
                                 {"$set": {
                                     "project_id": project_id,
@@ -175,8 +182,10 @@ def get_cases():
 @app.route('/cases/<case_id>')
 def get_case(case_id):
     global kpi
-    c = [obj for obj in list(cases.find({})) if str(obj.get("_id")) == str(case_id)][0]
-    return jsonify(kpi = kpi, case = c)
+    c = [obj for obj in list(cases.find({})) if str(obj.get("_id")) == str(case_id)]
+    if not c:
+        return Response(f"Case with id {case_id} not found.",404)
+    return jsonify(kpi = kpi, case = c[0])
 
 
 def allowed_file(filename):
