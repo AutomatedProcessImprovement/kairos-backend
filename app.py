@@ -165,8 +165,8 @@ def get_project_status(file_id):
     return jsonify(status = status)
 
 
-@app.route('/eventlogs')
-def get_eventlogs():
+@app.route('/event_logs')
+def get_event_logs():
     try: 
         fs = files.find({})
         logs = [{"_id": str(log.get('_id')),
@@ -176,16 +176,16 @@ def get_eventlogs():
                 'treatment': log.get('treatment'),
                 'alarmProbability': log.get('alarm_probability'),
                 'caseCompletion' : log.get('case_completion')} for log in fs]
-        return jsonify(eventlogs = logs)
+        return jsonify(event_logs = logs)
     except:
         return Response("Event logs not found",404)
 
-@app.route('/eventlogs/<file_id>')
-def get_eventlog(file_id):
+@app.route('/event_logs/<file_id>')
+def get_event_log(file_id):
     try:
         log = files.find_one({"_id": ObjectId(file_id)})
         log['_id'] = str(log.get('_id'))
-        return jsonify(eventlog = log)
+        return jsonify(event_log = log)
     except:
         return Response(f'Event log with {file_id} not found',404)
 
