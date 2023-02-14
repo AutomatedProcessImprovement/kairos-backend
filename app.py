@@ -22,25 +22,6 @@ PRCORE_HEADERS = {'Authorization':'Bearer UaJW0QvkMA1cVnOXB89E0NbLf3JRRoHwv2wWma
 PRCORE_BASE_URL = 'https://prcore.chaos.run'
 
 
-def initial():
-    global kpi
-    with open('data.json') as f:
-        data = json.load(f)
-        kpi = data.get('kpi')
-        for case in data['cases']:
-            case["status"] = "Completed" if [obj for obj in case["activities"] if obj["name"] == "End Event"] else "Open"
-            try:
-                cases.insert_one(case)
-            except:
-                print(f'Case {case["_id"]} already exists')
-                continue
-
-initial()
-
-@app.route('/')
-def index():
-    return "hello world"
-
 @app.route('/upload', methods=['POST'])
 def upload_file():
     if 'file' not in request.files:
@@ -148,13 +129,17 @@ def define_parameters(file_id):
                                     "case_completion": case_completion}})
     return Response('Parameters saved successfully',200)
 
-@app.route('/project/<file_id>/status')
+@app.route('/projects/<file_id>/status')
 def get_project_status(file_id):
     try: 
         log = files.find_one({"_id": ObjectId(file_id)})
     except:
         return Response("Event log not found",404)
     project_id = log.get('project_id')
+    status = project_status(project_id)
+    return jsonify(status = status)
+
+def project_status(project_id):
     res = requests.get(PRCORE_BASE_URL + f'/project/{project_id}', headers=PRCORE_HEADERS)
     try:
         res_dict = res.json()
@@ -162,7 +147,45 @@ def get_project_status(file_id):
         print(res)
         return Response("Something went wrong with PrCore",500)
     status = res_dict.get('project',{}).get('status')
-    return jsonify(status = status)
+    return status
+
+@app.route('/projects/<file_id>/simulate/start')
+def start_simulation(file_id):
+    try: 
+        log = files.find_one({"_id": ObjectId(file_id)})
+    except:
+        return Response("Event log not found",404)
+    project_id = log.get('project_id')
+    status = project_status(project_id)
+    if status != 'TRAINED':
+        return Response(f'Cannot start the simulation, project status is {status}',400)
+    
+    res = requests.put(PRCORE_BASE_URL + f'/project/{project_id}/simulate/start', headers=PRCORE_HEADERS)
+    try:
+        res_dict = res.json()
+    except:
+        print(res)
+        return Response("Something went wrong with PrCore",500)
+    return jsonify(message = res_dict)
+
+@app.route('/projects/<file_id>/simulate/stop')
+def stop_simulation(file_id):
+    try: 
+        log = files.find_one({"_id": ObjectId(file_id)})
+    except:
+        return Response("Event log not found",404)
+    project_id = log.get('project_id')
+    status = project_status(project_id)
+    if status not in ['TRAINED','STREAMING']:
+        return Response(f'Cannot stop the simulation, project status is {status}',400)
+    
+    res = requests.put(PRCORE_BASE_URL + f'/project/{project_id}/simulate/stop', headers=PRCORE_HEADERS)
+    try:
+        res_dict = res.json()
+    except:
+        print(res)
+        return Response("Something went wrong with PrCore",500)
+    return jsonify(message = res_dict)
 
 
 @app.route('/eventlogs')
