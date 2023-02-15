@@ -2,15 +2,18 @@ from flask import Flask, Response, request, jsonify
 from flask_cors import CORS
 from pymongo import MongoClient
 from bson.objectid import ObjectId
-import json
+import kairos.stream as stream
 import requests
 import datetime
 import numpy as np
-import threading
 import time
+from flask_sse import sse
+import threading
 
 app = Flask(__name__)
 CORS(app)
+app.config["REDIS_URL"] = "redis://localhost"
+app.register_blueprint(sse, url_prefix='/stream')
 
 client = MongoClient('localhost', 27017)
 db = client.flask_db
@@ -83,12 +86,13 @@ def update_types(file_id):
         col = list(df[ind])
         val = max(set(col), key = col.count)
         dic[attr] = val
+    print(res_dict)
     files.update_one({'_id': file.get('_id')},{"$set": {
                                         "activities": activities,
                                         "columns_definition": types,
                                         "case_attributes": dic,
-                                        "outcome_selections": res_dict.get('outcome_selections'),
-                                        "treatment_selections": res_dict.get('treatment_selections')}})
+                                        "outcome_selections": res_dict.get('outcome_options'),
+                                        "treatment_selections": res_dict.get('treatment_options')}})
     return Response('Types updated successfully',200)
 
 @app.route('/parameters/<file_id>', methods=['POST'])
@@ -122,9 +126,11 @@ def define_parameters(file_id):
         print(res)
         return Response('Something went wrong with PrCore',500)
     project_id = res_dict.get('project',{}).get('id')
+    project_status = res_dict.get('project',{}).get('status')
     files.find_one_and_update({"_id": ObjectId(file_id)},
                                 {"$set": {
                                     "project_id": project_id,
+                                    "project_status": project_status,
                                     "positive_outcome": positive_outcome,
                                     "treatment": treatment,
                                     "alarm_probability": alarm_probability,
@@ -141,13 +147,33 @@ def get_project_status(file_id):
     status = project_status(project_id)
     return jsonify(status = status)
 
+@app.route('/projects/<file_id>/status/stream')
+def stream_project_status(file_id):
+    def event_stream():
+        while True:
+            try: 
+                log = files.find_one({"_id": ObjectId(file_id)})
+            except:
+                return Response("Event log not found",404)
+            project_id = log.get('project_id')
+            old_status = log.get('project_status')
+            status = project_status(project_id)
+            if old_status != status:
+                print(f"old status: {old_status}")
+                print(f"New status: {status}" )
+                files.find_one_and_update({"_id": ObjectId(file_id)},
+                                    {"$set": {'project_status': status}})
+                yield "data: {}\n\n".format(status)
+            time.sleep(10)
+    return Response(event_stream(), mimetype="text/event-stream")
+
 def project_status(project_id):
     res = requests.get(PRCORE_BASE_URL + f'/project/{project_id}', headers=PRCORE_HEADERS)
     try:
         res_dict = res.json()
     except:
         print(res)
-        return Response("Something went wrong with PrCore",500)
+        return None
     status = res_dict.get('project',{}).get('status')
     return status
 
@@ -158,30 +184,27 @@ def start_simulation(file_id):
     except:
         return Response("Event log not found",404)
     project_id = log.get('project_id')
-    status = project_status(project_id)
-    if status != 'TRAINED':
-        return Response(f'Cannot start the simulation, project status is {status}',400)
-    
+    status = ''
+    while True:
+        status = project_status(project_id)
+        print(f'Project status: {status}.')
+        if status == 'TRAINED':
+            print('Starting stream...')
+            break
+        time.sleep(10)
+
     res = requests.put(PRCORE_BASE_URL + f'/project/{project_id}/simulate/start', headers=PRCORE_HEADERS)
     try:
         res_dict = res.json()
     except:
         print(res)
         return Response("Something went wrong with PrCore",500)
-    setup_stream(project_id)
-    return jsonify(message = res_dict)
-
-def setup_stream(project_id):
-    status = ''
-    def helper():
-        # make status global or call returnable threading
-        status = project_status(project_id)
-    t = threading.Timer(3.0, helper)
+    status = project_status(project_id)
+    print('Simulation started! Project status: ' + status)
+    t = threading.Thread(target=stream.start_stream, args=(project_id,))
     t.start()
-    if status == 'TRAINED':
-        t.cancel()
-        # stream.start_stream()
-
+    # TODO handle streaming
+    return jsonify(message = res_dict, status=status)
 
 @app.route('/projects/<file_id>/simulate/stop')
 def stop_simulation(file_id):
@@ -191,7 +214,7 @@ def stop_simulation(file_id):
         return Response("Event log not found",404)
     project_id = log.get('project_id')
     status = project_status(project_id)
-    if status not in ['TRAINED','STREAMING']:
+    if status not in ['STREAMING','SIMULATING']:
         return Response(f'Cannot stop the simulation, project status is {status}',400)
     
     res = requests.put(PRCORE_BASE_URL + f'/project/{project_id}/simulate/stop', headers=PRCORE_HEADERS)
@@ -200,7 +223,9 @@ def stop_simulation(file_id):
     except:
         print(res)
         return Response("Something went wrong with PrCore",500)
-    return jsonify(message = res_dict)
+    status = project_status(project_id)
+    print('Simulation stopped! Project status: ' + status)
+    return jsonify(message = res_dict,status = status)
 
 
 @app.route('/eventlogs')
@@ -244,4 +269,3 @@ def get_case(case_id):
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
-
