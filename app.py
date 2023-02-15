@@ -6,6 +6,8 @@ import json
 import requests
 import datetime
 import numpy as np
+import threading
+import time
 
 app = Flask(__name__)
 CORS(app)
@@ -166,7 +168,20 @@ def start_simulation(file_id):
     except:
         print(res)
         return Response("Something went wrong with PrCore",500)
+    setup_stream(project_id)
     return jsonify(message = res_dict)
+
+def setup_stream(project_id):
+    status = ''
+    def helper():
+        # make status global or call returnable threading
+        status = project_status(project_id)
+    t = threading.Timer(3.0, helper)
+    t.start()
+    if status == 'TRAINED':
+        t.cancel()
+        # stream.start_stream()
+
 
 @app.route('/projects/<file_id>/simulate/stop')
 def stop_simulation(file_id):
