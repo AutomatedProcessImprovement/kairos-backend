@@ -1,5 +1,4 @@
 from werkzeug.local import LocalProxy
-from bson.objectid import ObjectId
 from kairos.models.db import get_db
 
 db = LocalProxy(get_db)
@@ -13,7 +12,7 @@ def get_event_logs():
 
 def get_event_log(file_id):
     try:
-        log = db.files.find_one({"_id": ObjectId(file_id)})
+        log = db.files.find_one({"_id": int(file_id)})
         return log
     except (StopIteration) as _:
         return None
@@ -34,7 +33,7 @@ def save_event_log(filename, event_log_id, columns_header,columns_definition,col
     
 def update_event_log(file_id,data):
     try:
-        response = db.files.find_one_and_update({"_id": ObjectId(file_id)},{"$set": data})
+        response = db.files.find_one_and_update({"_id": int(file_id)},{"$set": data})
         return response
     except Exception as e:
         return e
