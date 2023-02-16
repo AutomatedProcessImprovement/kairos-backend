@@ -100,6 +100,7 @@ def define_parameters(file_id):
 
 @event_logs_api.route('/projects/<file_id>/status')
 def get_project_status(file_id):
+    print("getting project status")
     try:
         log = event_logs_db.get_event_log(file_id)
     except Exception as e:
@@ -107,12 +108,11 @@ def get_project_status(file_id):
     
     project_id = log.get('project_id')
     try:
-        res = prcore.check_project_status(project_id)
+        res = prcore.get_project_status(project_id)
     except Exception as e:
         return jsonify(error=str(e)),400
     
-    status = res.get('project',{}).get('status')
-    return jsonify(status = status),200
+    return jsonify(status = res),200
 
 @event_logs_api.route('/projects/<file_id>/simulate/start')
 def start_simulation(file_id):
