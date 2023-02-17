@@ -6,7 +6,7 @@ import requests
 import sseclient
 from flask import current_app
 
-from kairos.models.cases_model import ( get_case_by_project_id, save_case, update_case, get_case)
+from kairos.models.cases_model import ( get_case_by_project_id, save_case, update_case, update_case_prescriptions)
 from kairos.models.event_logs_model import get_event_log_by_project_id
 
 
@@ -143,8 +143,8 @@ def record_event(event_data,event_id,project_id):
         _id = save_case(case_id,project_id,case_completed,activity,prescriptions_with_output,case_attributes).inserted_id
         print(f'saved case: {_id}')
     else:
+        update_case_prescriptions(case_id,activity)
         update_case(case_id,case_completed,activity,prescriptions_with_output)
         print(f'updated case: {case_id}')
-
 
     return
