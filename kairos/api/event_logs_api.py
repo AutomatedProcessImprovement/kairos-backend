@@ -2,7 +2,6 @@ from flask import Blueprint, request, jsonify, current_app
 from flask_cors import CORS
 
 from datetime import datetime
-import threading
 
 import kairos.models.event_logs_model as event_logs_db
 import kairos.services.prcore as prcore

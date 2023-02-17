@@ -1,5 +1,4 @@
 from werkzeug.local import LocalProxy
-from bson.objectid import ObjectId
 from kairos.models.db import get_db
 
 db = LocalProxy(get_db)
@@ -32,27 +31,24 @@ def get_case(case_id):
     except Exception as e:
         return e
     
-def save_case(case_id,event_id,project_id,case_completed,activity,prescriptions_with_output,case_attributes):
-
+def save_case(case_id,project_id,case_completed,activity,prescriptions_with_output,case_attributes):
+    activity['prescriptions'] = prescriptions_with_output
     new_case = {
         '_id':case_id,
         'project_id':project_id,
         'case_completed':case_completed,
         'activities':[activity],
-        'prescriptions': {event_id:prescriptions_with_output},
         'case_attributes':case_attributes,
         }
     return db.cases.insert_one(new_case)
 
-def update_case(case_id,event_id,case_completed,activity,prescriptions_with_output):
-
+def update_case(case_id,case_completed,activity,prescriptions_with_output):
+    activity['prescriptions'] = prescriptions_with_output
     try:
         response = db.cases.find_one_and_update(
             {"_id": case_id},
             {
-                "$set": { 'case_completed':case_completed,
-                            f'prescriptions.{event_id}': prescriptions_with_output
-                        },
+                "$set": { 'case_completed':case_completed},
                 "$push":{'activities': activity}
             },
         )

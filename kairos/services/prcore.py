@@ -118,12 +118,13 @@ def record_event(event_data,event_id,project_id):
     case_attributes = {}
 
     for k,v in event_data.get('data').items():
-        print(f'key: {k}, value: {v}, type of value: {type(v)}')
         attr = columns_definition.get(k)
         if attr == 'CASE_ID':
             case_id = v
         elif attr == 'ACTIVITY':
             activity['ACTIVITY'] = v
+        elif attr in ['TIMESTAMP','START_TIMESTAMP']:
+            activity['TIMESTAMP'] = v
         elif k in case_attributes_definition:
             case_attributes[k] = v
         else:
@@ -139,10 +140,10 @@ def record_event(event_data,event_id,project_id):
         return e
 
     if not old_case:
-        _id = save_case(case_id,event_id,project_id,case_completed,activity,prescriptions_with_output,case_attributes).inserted_id
+        _id = save_case(case_id,project_id,case_completed,activity,prescriptions_with_output,case_attributes).inserted_id
         print(f'saved case: {_id}')
     else:
-        update_case(case_id,event_id,case_completed,activity,prescriptions_with_output)
+        update_case(case_id,case_completed,activity,prescriptions_with_output)
         print(f'updated case: {case_id}')
 
 
