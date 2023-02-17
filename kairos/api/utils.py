@@ -1,4 +1,3 @@
-import json
 import numpy as np
 
 def expect(input, expectedType, field):

@@ -1,4 +1,4 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, current_app
 from flask_cors import CORS
 
 from datetime import datetime
@@ -114,35 +114,36 @@ def get_project_status(file_id):
     
     return jsonify(status = res),200
 
-@event_logs_api.route('/projects/<file_id>/simulate/start')
+@event_logs_api.route('/projects/<file_id>/simulate/start', methods=['PUT'])
 def start_simulation(file_id):
     try: 
         log = event_logs_db.get_event_log(file_id)
     except Exception as e:
+        print(str(e))
         return jsonify(error = str(e)), 400
     
     project_id = log.get('project_id')
     status = prcore.get_project_status(project_id)
-    print(f'Project status: {status}.')
-    if status == 'TRAINED':
-        print('Starting stream...')
-
     if status != 'TRAINED':
         return jsonify(message=f'Cannot start the simulation, project status: {status}'), 400
     
     try:
         res = prcore.start_simulation(project_id)
     except Exception as e:
+        print(f"error in prcore: {str(e)}")
         return jsonify(error=str(e)),400
     
     status = prcore.get_project_status(project_id)
     print('Simulation started! Project status: ' + status)
-    t = threading.Thread(target=prcore.start_stream, args=(project_id,))
-    t.start()
+    try:
+        prcore.start_stream_thread(project_id)
+    except Exception as e:
+        return jsonify(message=str(e)),400
     # TODO handle streaming
+    print(res)
     return jsonify(message = res,status = status)
 
-@event_logs_api.route('/projects/<file_id>/simulate/stop')
+@event_logs_api.route('/projects/<file_id>/simulate/stop', methods=['PUT'])
 def stop_simulation(file_id):
     try: 
         log = event_logs_db.get_event_log(file_id)

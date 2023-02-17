@@ -1,8 +1,10 @@
 from flask import current_app
+import threading
 import requests
 import json
 import pprint
 import sseclient
+from kairos.models.cases_model import save_case, update_case, get_case, get_case_by_log,get_cases,get_cases_by_log
 
 def upload_file(file, delimiter):
     res = requests.post(current_app.config.get('PRCORE_BASE_URL') + '/event_log', 
@@ -46,25 +48,33 @@ def get_project_status(project_id):
         return e
 
 def start_simulation(project_id):
-    res = requests.get(current_app.config.get('PRCORE_BASE_URL') + f'/project/{project_id}/simulate/start', headers=current_app.config.get('PRCORE_HEADERS'))
+    res = requests.put(current_app.config.get('PRCORE_BASE_URL') + f'/project/{project_id}/simulate/start', headers=current_app.config.get('PRCORE_HEADERS'))
     try:
         return res.json()
     except Exception as e:
         return e
 
 def stop_simulation(project_id):
-    res = requests.get(current_app.config.get('PRCORE_BASE_URL') + f'/project/{project_id}/simulate/stop', headers=current_app.config.get('PRCORE_HEADERS'))
+    res = requests.put(current_app.config.get('PRCORE_BASE_URL') + f'/project/{project_id}/simulate/stop', headers=current_app.config.get('PRCORE_HEADERS'))
     try:
         return res.json()
     except Exception as e:
         return e
 
-def start_stream(project_id):
+def start_stream_thread(project_id):
+    t = threading.Thread(target=start_stream, args=(project_id,current_app.config.get('PRCORE_BASE_URL'),current_app.config.get('PRCORE_HEADERS')))
+    t.start()
+    return
+
+def start_stream(project_id, BASE_URL, HEADERS):
     print(f'Starting the stream for project Id: {project_id}')
-    response = requests.get(current_app.config.get('PRCORE_BASE_URL') + f"/project/{project_id}/streaming/result", stream=True, headers=current_app.config.get('PRCORE_HEADERS'))
+    response = requests.get(BASE_URL + f'/project/{project_id}/streaming/result', headers=HEADERS, stream=True)
     print('got response: ')
     print(response)
-    client = sseclient.SSEClient(response)
+    try:
+        client = sseclient.SSEClient(response)
+    except Exception as e:
+        return e
 
     print("Waiting for events...")
 
@@ -75,7 +85,7 @@ def start_stream(project_id):
 
             event_data = json.loads(event.data)
             first_event = event_data[0]
-            print(f"first event: {first_event}")
+            # print(f"first event: {first_event}")
             prescriptions = first_event["prescriptions"]
             prescriptions_with_output = [prescriptions[p] for p in prescriptions if prescriptions[p]["output"]]
 
