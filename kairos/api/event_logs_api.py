@@ -63,6 +63,7 @@ def update_types(file_id):
     # TODO save file somewhere and get case attributes properly
     event_logs_db.update_event_log( file_id,{
                                         "activities": activities,
+                                        "case_attributes": case_attributes,
                                         "columns_definition": columns_definition,
                                         "outcome_options": res.get('outcome_options'),
                                         "treatment_options": res.get('treatment_options')})
@@ -100,11 +101,12 @@ def define_parameters(file_id):
 
 @event_logs_api.route('/projects/<file_id>/status')
 def get_project_status(file_id):
-    print("getting project status")
     try:
         log = event_logs_db.get_event_log(file_id)
     except Exception as e:
         return jsonify(error = str(e)), 400
+    if not log:
+        return jsonify(error = 'log not found'), 400
     
     project_id = log.get('project_id')
     try:
@@ -134,13 +136,13 @@ def start_simulation(file_id):
         return jsonify(error=str(e)),400
     
     status = prcore.get_project_status(project_id)
-    print('Simulation started! Project status: ' + status)
-    try:
-        prcore.start_stream_thread(project_id)
-    except Exception as e:
-        return jsonify(message=str(e)),400
-    # TODO handle streaming
     print(res)
+    print('Project status: ' + status)
+    try:
+        prcore.start_stream(project_id)
+    except Exception as e:
+        print(str(e))
+        return jsonify(message=str(e)),404
     return jsonify(message = res,status = status)
 
 @event_logs_api.route('/projects/<file_id>/simulate/stop', methods=['PUT'])

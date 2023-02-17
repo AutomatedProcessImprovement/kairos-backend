@@ -10,33 +10,53 @@ def get_cases():
     except Exception as e:
         return e
 
-def get_cases_by_log(file_id):
+def get_cases_by_project_id(project_id):
     try:
-        return list(db.cases.find({"file_id": int(file_id)}))
+        return list(db.cases.find({"project_id": int(project_id)}))
     except Exception as e:
         return e
 
-def get_case_by_log(file_id,case_id):
+def get_case_by_project_id(case_id,project_id):
     try:
-        return list(db.cases.find({"file_id":file_id,"_id":int(case_id)}))
+        return db.cases.find_one({"project_id":int(project_id),"_id":case_id})
+    except (StopIteration) as _:
+        return None
     except Exception as e:
         return e
 
 def get_case(case_id):
     try:
-        c = db.cases.find_one({"_id": int(case_id)})
-        return c
+        return db.cases.find_one({"_id": case_id})
     except (StopIteration) as _:
         return None
     except Exception as e:
         return e
     
-def save_case(case):
-    return db.cases.cases.insert_one(case)
+def save_case(case_id,event_id,project_id,case_completed,activity,prescriptions_with_output,case_attributes):
 
-def update_case(case_id,data):
+    new_case = {
+        '_id':case_id,
+        'project_id':project_id,
+        'case_completed':case_completed,
+        'activities':[activity],
+        'prescriptions': {event_id:prescriptions_with_output},
+        'case_attributes':case_attributes,
+        }
+    return db.cases.insert_one(new_case)
+
+def update_case(case_id,event_id,case_completed,activity,prescriptions_with_output):
+
     try:
-        response = db.cases.cases.find_one_and_update({"_id": int(case_id)},{"$set": data})
+        response = db.cases.find_one_and_update(
+            {"_id": case_id},
+            {
+                "$set": { 'case_completed':case_completed,
+                            f'prescriptions.{event_id}': prescriptions_with_output
+                        },
+                "$push":{'activities': activity}
+            },
+        )
         return response
     except Exception as e:
         return e
+

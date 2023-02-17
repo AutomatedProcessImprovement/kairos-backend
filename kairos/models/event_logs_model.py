@@ -19,6 +19,15 @@ def get_event_log(file_id):
     except Exception as e:
         return e
 
+def get_event_log_by_project_id(project_id):
+    try:
+        log = db.files.find_one({"project_id": project_id})
+        return log
+    except (StopIteration) as _:
+        return None
+    except Exception as e:
+        return e
+
 def save_event_log(filename, event_log_id, columns_header,columns_definition,columns_data,delimiter,datetime):
     event_log = {
         '_id':event_log_id,

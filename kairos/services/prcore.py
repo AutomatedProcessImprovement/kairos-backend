@@ -1,10 +1,14 @@
-from flask import current_app
-import threading
-import requests
 import json
 import pprint
+import threading
+
+import requests
 import sseclient
-from kairos.models.cases_model import save_case, update_case, get_case, get_case_by_log,get_cases,get_cases_by_log
+from flask import current_app
+
+from kairos.models.cases_model import ( get_case_by_project_id, save_case, update_case, get_case)
+from kairos.models.event_logs_model import get_event_log_by_project_id
+
 
 def upload_file(file, delimiter):
     res = requests.post(current_app.config.get('PRCORE_BASE_URL') + '/event_log', 
@@ -63,14 +67,12 @@ def stop_simulation(project_id):
 
 def start_stream_thread(project_id):
     t = threading.Thread(target=start_stream, args=(project_id,current_app.config.get('PRCORE_BASE_URL'),current_app.config.get('PRCORE_HEADERS')))
-    t.start()
-    return
+    t.start()   
 
-def start_stream(project_id, BASE_URL, HEADERS):
+def start_stream(project_id):
     print(f'Starting the stream for project Id: {project_id}')
-    response = requests.get(BASE_URL + f'/project/{project_id}/streaming/result', headers=HEADERS, stream=True)
-    print('got response: ')
-    print(response)
+    response = requests.get(current_app.config.get('PRCORE_BASE_URL') + f'/project/{project_id}/streaming/result', headers=current_app.config.get('PRCORE_HEADERS'), stream=True)
+    print(f'got response: {response}')
     try:
         client = sseclient.SSEClient(response)
     except Exception as e:
@@ -85,24 +87,63 @@ def start_stream(project_id, BASE_URL, HEADERS):
 
             event_data = json.loads(event.data)
             first_event = event_data[0]
-            # print(f"first event: {first_event}")
-            prescriptions = first_event["prescriptions"]
-            prescriptions_with_output = [prescriptions[p] for p in prescriptions if prescriptions[p]["output"]]
-
-            if not prescriptions_with_output:
-                continue
-            
             print(f"Received message: {event.event}")
             print(f"ID: {event.id}")
-
 
             print(f"Data type: {type(event_data)}")
             print(f"Length: {len(event_data)}")
 
-            pprint.pprint(prescriptions_with_output, width=120)
+            # pprint.pprint(first_event, width=120)
+
+            record_event(first_event,event.id,project_id)
 
             print("-" * 24)
     except KeyboardInterrupt:
         print("Interrupted by user")
 
     print("Done!")
+
+def record_event(event_data,event_id,project_id):
+    print('Recording event...')
+    try:
+        log = get_event_log_by_project_id(project_id)
+    except Exception as e:
+        print(str(e))
+        return
+    columns_definition = log.get("columns_definition")
+    case_attributes_definition = log.get('case_attributes')
+
+    case_id = 0
+    activity = {'event_id': event_id}
+    case_attributes = {}
+
+    for k,v in event_data.get('data').items():
+        print(f'key: {k}, value: {v}, type of value: {type(v)}')
+        attr = columns_definition.get(k)
+        if attr == 'CASE_ID':
+            case_id = v
+        elif attr == 'ACTIVITY':
+            activity['ACTIVITY'] = v
+        elif k in case_attributes_definition:
+            case_attributes[k] = v
+        else:
+            activity[k] = v
+
+    prescriptions = event_data.get("prescriptions")
+    prescriptions_with_output = [prescriptions[p] for p in prescriptions if prescriptions[p]["output"]]
+    case_completed = event_data.get('case_completed')
+
+    try:
+        old_case = get_case_by_project_id(case_id,project_id)
+    except Exception as e:
+        return e
+
+    if not old_case:
+        _id = save_case(case_id,event_id,project_id,case_completed,activity,prescriptions_with_output,case_attributes).inserted_id
+        print(f'saved case: {_id}')
+    else:
+        update_case(case_id,event_id,case_completed,activity,prescriptions_with_output)
+        print(f'updated case: {case_id}')
+
+
+    return
