@@ -143,7 +143,7 @@ def record_event(event_data,event_id,project_id):
         _id = save_case(case_id,project_id,case_completed,activity,prescriptions_with_output,case_attributes).inserted_id
         print(f'saved case: {_id}')
     else:
-        update_case_prescriptions(case_id,activity)
+        update_case_prescriptions(case_id,activity['ACTIVITY'])
         update_case(case_id,case_completed,activity,prescriptions_with_output)
         print(f'updated case: {case_id}')
 
