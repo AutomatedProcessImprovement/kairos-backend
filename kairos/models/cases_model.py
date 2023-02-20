@@ -56,12 +56,12 @@ def update_case(case_id,case_completed,activity,prescriptions_with_output):
     except Exception as e:
         return e
 
-def update_case_prescriptions(case_id,new_activity):
+def update_case_prescriptions(case_id,event_id,new_activity):
     try:
         db.cases.find_one_and_update(
             {"_id": case_id},
             {"$set": {'activities.$[activity].prescriptions.$[prescription].status': 'accepted'}},
-            {"arrayFilters": [{'activity': {'$eq': { '$last': "$activities" }}},{'prescription.type': 'NEXT_ACTIVITY'},{'prescription.output': new_activity}]}
+            {"arrayFilters": [{'activity.event_id': event_id},{'prescription.type': 'NEXT_ACTIVITY', 'prescription.output': new_activity}]}
         )
     except Exception as e:
         return e

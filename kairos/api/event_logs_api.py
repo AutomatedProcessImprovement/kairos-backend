@@ -26,6 +26,15 @@ def get_event_log(file_id):
         return jsonify(event_log = log),200
     except Exception as e:
         return jsonify(error=str(e)),400
+    
+@event_logs_api.route('/event_logs/<file_id>/kpi')
+def get_event_log_kpi(file_id):
+    try:
+        log = event_logs_db.get_event_log(file_id)
+        return jsonify(kpi = log['positive_outcome']),200
+    except Exception as e:
+        return jsonify(error=str(e)),400
+
 
 @event_logs_api.route('/upload', methods=['POST'])
 def save_file():

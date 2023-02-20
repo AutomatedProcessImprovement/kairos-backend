@@ -1,5 +1,5 @@
 import json
-import pprint
+import time
 import threading
 
 import requests
@@ -120,7 +120,7 @@ def record_event(event_data,event_id,project_id):
     for k,v in event_data.get('data').items():
         attr = columns_definition.get(k)
         if attr == 'CASE_ID':
-            case_id = v
+            case_id = v.split('-')[1]
         elif attr == 'ACTIVITY':
             activity['ACTIVITY'] = v
         elif attr in ['TIMESTAMP','START_TIMESTAMP']:
@@ -143,7 +143,9 @@ def record_event(event_data,event_id,project_id):
         _id = save_case(case_id,project_id,case_completed,activity,prescriptions_with_output,case_attributes).inserted_id
         print(f'saved case: {_id}')
     else:
-        update_case_prescriptions(case_id,activity['ACTIVITY'])
+        event_id = old_case['activities'][-1]['event_id']
+        update_case_prescriptions(case_id,event_id,activity['ACTIVITY'])
+        time.sleep(1)
         update_case(case_id,case_completed,activity,prescriptions_with_output)
         print(f'updated case: {case_id}')
 
