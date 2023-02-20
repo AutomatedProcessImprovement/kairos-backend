@@ -1,7 +1,8 @@
-from flask import Blueprint, request, jsonify, current_app
+from flask import Blueprint, Response, request, jsonify, current_app
 from flask_cors import CORS
 
 from datetime import datetime
+import time
 
 import kairos.models.event_logs_model as event_logs_db
 import kairos.services.prcore as prcore
@@ -117,12 +118,16 @@ def get_project_status(file_id):
         return jsonify(error = 'log not found'), 400
     
     project_id = log.get('project_id')
-    try:
-        res = prcore.get_project_status(project_id)
-    except Exception as e:
-        return jsonify(error=str(e)),400
+    def stream():
+        while True:
+            try:
+                res = prcore.get_project_status(project_id)
+                yield f"data: {res}\n\n"
+                time.sleep(5)
+            except Exception as e:
+                return Response(str(e),400)
     
-    return jsonify(status = res),200
+    return Response(stream(),mimetype='text/event-stream')
 
 @event_logs_api.route('/projects/<file_id>/simulate/start', methods=['PUT'])
 def start_simulation(file_id):
