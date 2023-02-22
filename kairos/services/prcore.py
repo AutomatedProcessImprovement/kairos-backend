@@ -49,6 +49,7 @@ def get_project_status(project_id):
     try:
         return res.json().get('project',{}).get('status')
     except Exception as e:
+        print(res)
         return e
 
 def start_simulation(project_id):
@@ -145,7 +146,6 @@ def record_event(event_data,event_id,project_id):
     else:
         event_id = old_case['activities'][-1]['event_id']
         update_case_prescriptions(case_id,event_id,activity['ACTIVITY'])
-        time.sleep(1)
         update_case(case_id,case_completed,activity,prescriptions_with_output)
         print(f'updated case: {case_id}')
 
