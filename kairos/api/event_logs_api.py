@@ -27,11 +27,11 @@ def get_event_log(file_id):
     except Exception as e:
         return jsonify(error=str(e)),400
     
-@event_logs_api.route('/event_logs/<file_id>/kpi')
-def get_event_log_kpi(file_id):
+@event_logs_api.route('/event_logs/<file_id>/parameters')
+def get_event_log_parameters(file_id):
     try:
         log = event_logs_db.get_event_log(file_id)
-        return jsonify(kpi = log['positive_outcome']),200
+        return jsonify(kpi = log['positive_outcome'], caseCompletion = log['case_completion'],treatment = log['treatment'],alarmThreshold = log['alarm_threshold']),200
     except Exception as e:
         return jsonify(error=str(e)),400
 
