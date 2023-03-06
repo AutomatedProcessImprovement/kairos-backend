@@ -1,5 +1,7 @@
 from werkzeug.local import LocalProxy
 from kairos.models.db import get_db
+from pymongo import ReturnDocument
+
 
 db = LocalProxy(get_db)
 
@@ -51,6 +53,7 @@ def update_case(case_id,case_completed,activity,prescriptions_with_output):
                 "$set": { 'case_completed':case_completed},
                 "$push":{'activities': activity}
             },
+            return_document=ReturnDocument.AFTER
         )
         return response
     except Exception as e:
@@ -62,6 +65,15 @@ def update_case_prescriptions(case_id,event_id,new_activity):
             {"_id": case_id},
             {"$set": {'activities.$[activity].prescriptions.$[prescription].status': 'accepted'}},
             {"arrayFilters": [{'activity.event_id': event_id},{'prescription.type': 'NEXT_ACTIVITY', 'prescription.output': new_activity}]}
+        )
+    except Exception as e:
+        return e
+    
+def update_case_performance(case_id,case_performance):
+    try:
+        db.cases.find_one_and_update(
+            {"_id": case_id},
+            {"$set": {'case_performance': case_performance}},
         )
     except Exception as e:
         return e

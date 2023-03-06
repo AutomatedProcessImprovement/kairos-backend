@@ -1,4 +1,4 @@
-from flask import Blueprint, request, jsonify, current_app
+from flask import Blueprint, request, jsonify
 from flask_cors import CORS
 
 from datetime import datetime
@@ -31,7 +31,7 @@ def get_event_log(file_id):
 def get_event_log_parameters(file_id):
     try:
         log = event_logs_db.get_event_log(file_id)
-        return jsonify(kpi = log['positive_outcome'], caseCompletion = log['case_completion'],treatment = log['treatment'],alarmThreshold = log['alarm_threshold']),200
+        return jsonify(columnsDefinition = log['columns_definition'],kpi = log['positive_outcome'], caseCompletion = log['case_completion'],treatment = log['treatment'],alarmThreshold = log['alarm_threshold']),200
     except Exception as e:
         return jsonify(error=str(e)),400
 
@@ -44,31 +44,30 @@ def save_file():
     file = request.files['file']
     if not file and not k_utils.is_allowed_file(file.filename):
         return jsonify(error='Incorrect file extension'), 400
-    
     delimiter = request.form.get('delimiter')
     
     try:
-        res = prcore.upload_file(file, delimiter)
+        res = prcore.upload_file(file,delimiter)
+        print(res)
     except Exception as e:
         return jsonify(error=str(e)), 400
+
     event_log_id = res.get('event_log_id')
     file_id = event_logs_db.save_event_log(file.filename, event_log_id, res.get('columns_header'), res.get('columns_inferred_definition'),
                                  res.get('columns_data'), delimiter, datetime.now()).inserted_id
-    
+    print(file_id)
     return jsonify(fileId = str(file_id)), 200
 
 @event_logs_api.route('/update/<file_id>', methods=['PUT'])
 def update_types(file_id):
     columns_definition = request.get_json().get('columns_definition')
     case_attributes = request.get_json().get('case_attributes')
-    
     try:
         res = prcore.define_columns(file_id,columns_definition)
+        activities = list(res.get('activities_count').keys())
     except Exception as e:
         jsonify(error=str(e)),400
 
-    activities = list(res.get('activities_count').keys())
-    # TODO save file somewhere and get case attributes properly
     event_logs_db.update_event_log( file_id,{
                                         "activities": activities,
                                         "case_attributes": case_attributes,
@@ -83,13 +82,18 @@ def define_parameters(file_id):
     treatment = request.get_json().get('treatment')
     alarm_threshold = request.get_json().get('alarm_threshold')
     case_completion = request.get_json().get('case_completion')
+
     try:
         file = event_logs_db.get_event_log(file_id)
     except Exception as e:
         return jsonify(error = str(e)), 400
     
+    columns_definition = file.get('columns_definition')
+    positive_outcome['value'] = k_utils.validate_timestamp(positive_outcome,columns_definition)
+    treatment['value'] = k_utils.validate_timestamp(treatment,columns_definition)
+
     project_id = file.get('project_id')
-    
+
     try:
         res = prcore.define_parameters(project_id,file_id,positive_outcome,treatment)
     except Exception as e:

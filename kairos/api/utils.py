@@ -1,4 +1,4 @@
-import numpy as np
+from dateutil import parser
 
 def expect(input, expectedType, field):
     if isinstance(input, expectedType):
@@ -8,13 +8,10 @@ def expect(input, expectedType, field):
 def is_allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ['.csv','.xes']
 
-def get_case_attributes(file,case_attributes):
-    dic = {}
-    for attr in case_attributes:
-        ind = file.get('columns_header').index(attr)
-        df = np.array(file.get('columns_data'))
-        df = df.transpose()
-        col = list(df[ind])
-        val = max(set(col), key = col.count)
-        dic[attr] = val
-    return dic
+def validate_timestamp(data,columns_definition):
+    timeTypes = ['TIMESTAMP','START_TIMESTAMP','END_TIMESTAMP','DATETIME']
+
+    if columns_definition.get(data['column']) in timeTypes:
+        data['value'] = parser.parse(data['value']).strftime('%Y-%m-%dT%H:%M:%SZ')
+
+    return data['value']

@@ -35,7 +35,7 @@ def save_event_log(filename, event_log_id, columns_header,columns_definition,col
         'columns_header':columns_header,
         'columns_definition': columns_definition,
         'columns_data':columns_data,
-        'delimite':delimiter,
+        'delimiter':delimiter,
         'datetime':datetime
         }
     return db.files.insert_one(event_log)
