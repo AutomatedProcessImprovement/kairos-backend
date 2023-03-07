@@ -14,7 +14,3 @@ def get_db():
         db = g._database = PyMongo(current_app).db
        
     return db
-
-
-# Use LocalProxy to read the global db instance with just `db`
-# db = LocalProxy(get_db)

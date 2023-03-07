@@ -59,7 +59,7 @@ def record_event(event_data,event_id,project_id):
         return e
 
     update_case_performance(case_id,case_performance)
-    print(f'updated case: {case_id}')
+    print(f'updated case performance')
 
 def calculate_case_performance(case_id,positive_outcome, columns_definition):
     print('calculating case performance')
