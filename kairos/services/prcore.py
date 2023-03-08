@@ -41,13 +41,16 @@ def define_parameters(project_id,event_log_id,positive_outcome,treatment):
                         headers=current_app.config.get('PRCORE_HEADERS'), 
                         json=data)
     try:
+        # print(res.json())
         return res.json()
     except Exception as e:
         return e
 
 def get_project_status(project_id):
+    # print(project_id)
     res = requests.get(current_app.config.get('PRCORE_BASE_URL') + f'/project/{project_id}', headers=current_app.config.get('PRCORE_HEADERS'))
     try:
+        # print(res.json())
         return res.json().get('project',{}).get('status')
     except Exception as e:
         print(res)

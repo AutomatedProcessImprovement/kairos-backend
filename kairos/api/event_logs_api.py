@@ -5,7 +5,7 @@ from datetime import datetime
 
 import kairos.models.event_logs_model as event_logs_db
 import kairos.services.prcore as prcore
-import kairos.api.utils as k_utils
+import kairos.services.utils as k_utils
 
 event_logs_api = Blueprint('event_logs_api','event_logs_api',url_prefix='/api')
 
@@ -48,14 +48,12 @@ def save_file():
     
     try:
         res = prcore.upload_file(file,delimiter)
-        print(res)
     except Exception as e:
         return jsonify(error=str(e)), 400
 
     event_log_id = res.get('event_log_id')
     file_id = event_logs_db.save_event_log(file.filename, event_log_id, res.get('columns_header'), res.get('columns_inferred_definition'),
                                  res.get('columns_data'), delimiter, datetime.now()).inserted_id
-    print(file_id)
     return jsonify(fileId = str(file_id)), 200
 
 @event_logs_api.route('/update/<file_id>', methods=['PUT'])
@@ -149,7 +147,6 @@ def start_simulation(file_id):
     
     status = prcore.get_project_status(project_id)
     print(res)
-    print('Project status: ' + status)
     try:
         prcore.start_stream(project_id)
     except Exception as e:
