@@ -25,8 +25,5 @@ def create_app():
     app.json_encoder = MongoJsonEncoder
     app.register_blueprint(cases_api)
     app.register_blueprint(event_logs_api)
-    app.config["MONGO_URI"] = os.environ.get("MONGO_URI", 'mongodb://mongo:27017/flask_db')
-    app.config["PRCORE_HEADERS"] = {'Authorization':'Bearer UaJW0QvkMA1cVnOXB89E0NbLf3JRRoHwv2wWmaY5v=QYpaxr1UD9/FupeZ85sa2r'}
-    app.config["PRCORE_BASE_URL"] = 'https://prcore.chaos.run'
-
+    
     return app
