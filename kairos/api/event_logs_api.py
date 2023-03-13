@@ -7,7 +7,7 @@ import kairos.models.event_logs_model as event_logs_db
 import kairos.services.prcore as prcore
 import kairos.services.utils as k_utils
 
-event_logs_api = Blueprint('event_logs_api','event_logs_api',url_prefix='/api')
+event_logs_api = Blueprint('event_logs_api','event_logs_api',url_prefix='/frontend_api')
 
 CORS(event_logs_api)
 
@@ -121,10 +121,11 @@ def get_project_status(file_id):
     project_id = log.get('project_id')
     try:
         res = prcore.get_project_status(project_id)
+        response = jsonify(status = res),200
     except Exception as e:
         return jsonify(error=str(e)),400
     
-    return jsonify(status = res),200
+    return response
 
 @event_logs_api.route('/projects/<file_id>/simulate/start', methods=['PUT'])
 def start_simulation(file_id):
