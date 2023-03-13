@@ -4,11 +4,11 @@ import kairos.models.event_logs_model as event_logs_db
 
 from flask_cors import CORS
 
-cases_api = Blueprint('cases_api','cases_api',url_prefix='/api')
+cases_api = Blueprint('cases_api','cases_api',url_prefix='/cases')
 
 CORS(cases_api)
 
-@cases_api.route('/cases')
+@cases_api.route('')
 def get_cases():
     try:
         c = cases_db.get_cases()
@@ -16,17 +16,10 @@ def get_cases():
     except Exception as e:
         return jsonify(error=str(e)),400
     
-@cases_api.route('event_logs/<file_id>/cases')
-def get_cases_by_log(file_id):
+@cases_api.route('event_logs/<event_log_id>/cases')
+def get_cases_by_log(event_log_id):
     try:
-        log = event_logs_db.get_event_log(file_id)
-    except Exception as e:
-        return jsonify(error=str(e)),400
-    if not log:
-        return jsonify(error=f'Log with this id not found: {file_id}'),404
-    
-    try:
-        c = cases_db.get_cases_by_project_id(log.get('project_id'))
+        c = cases_db.get_cases_by_log_id(event_log_id)
         return jsonify(cases = c),200
     except Exception as e:
         return jsonify(error=str(e)),400

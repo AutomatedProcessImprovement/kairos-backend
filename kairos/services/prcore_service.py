@@ -4,7 +4,7 @@ import requests
 import sseclient
 from flask import current_app
 
-from kairos.services.utils import record_event
+import kairos.services.utils as k_utils
 
 def upload_file(file, delimiter):
     res = requests.post(current_app.config.get('PRCORE_BASE_URL') + '/event_log', 
@@ -45,6 +45,16 @@ def define_parameters(project_id,event_log_id,positive_outcome,treatment):
     except Exception as e:
         return e
 
+def delete_project(project_id):
+    # print(project_id)
+    res = requests.delete(current_app.config.get('PRCORE_BASE_URL') + f'/project/{project_id}', headers=current_app.config.get('PRCORE_HEADERS'))
+    try:
+        # print(res.json())
+        return res.json()
+    except Exception as e:
+        # print(res)
+        return e
+
 def get_project_status(project_id):
     # print(project_id)
     res = requests.get(current_app.config.get('PRCORE_BASE_URL') + f'/project/{project_id}', headers=current_app.config.get('PRCORE_HEADERS'))
@@ -64,6 +74,13 @@ def start_simulation(project_id):
 
 def stop_simulation(project_id):
     res = requests.put(current_app.config.get('PRCORE_BASE_URL') + f'/project/{project_id}/stream/stop', headers=current_app.config.get('PRCORE_HEADERS'))
+    try:
+        return res.json()
+    except Exception as e:
+        return e 
+
+def clear_streamed_data(project_id):
+    res = requests.put(current_app.config.get('PRCORE_BASE_URL') + f'/project/{project_id}/stream/clear', headers=current_app.config.get('PRCORE_HEADERS'))
     try:
         return res.json()
     except Exception as e:
@@ -95,7 +112,7 @@ def start_stream(project_id):
             # print(first_event)
 
             try:
-                record_event(first_event,event.id,project_id)
+                k_utils.record_event(first_event,event.id,project_id)
             except Exception as e:
                 return e
 

@@ -3,6 +3,8 @@ from flask import request, jsonify
 from datetime import datetime
 
 import kairos.models.event_logs_model as event_logs_db
+import kairos.models.cases_model as cases_db
+from kairos.models.project_status import Status as PROJECT_STATUS
 import kairos.services.prcore_service as prcore_service
 import kairos.services.utils as k_utils
 
@@ -20,12 +22,6 @@ def get_log(event_log_id):
     except Exception as e:
         return jsonify(error=str(e)),400
 
-def get_log_parameters(event_log_id):
-    try:
-        log = event_logs_db.get_event_log(event_log_id)
-        return jsonify(columnsDefinition = log['columns_definition'],kpi = log['positive_outcome'], caseCompletion = log['case_completion'],treatment = log['treatment'],alarmThreshold = log['alarm_threshold']),200
-    except Exception as e:
-        return jsonify(error=str(e)),400
     
 def save_log():
     if 'file' not in request.files:
@@ -50,7 +46,43 @@ def save_log():
                                  columns_data, delimiter, datetime.now()).inserted_id
     return jsonify(logId = str(saved_id)), 200
 
+
+def delete_log(event_log_id):
+    try:
+        log = event_logs_db.get_event_log(event_log_id)
+    except Exception as e:
+        return jsonify(error = str(e)), 500
+    
+    project_id = log.get('project_id')
+    if project_id != None:
+        try:
+            prcore_service.delete_project(project_id)
+        except Exception as e:
+            jsonify(error=str(e)),400
+
+    try:
+        cases_db.delete_cases_by_log_id(event_log_id)
+        event_logs_db.delete_event_log( event_log_id)
+    except Exception as e:
+        return jsonify(error=str(e)),500
+    
+    return jsonify(message=f'Event log {event_log_id} deleted successfully'),200
+
+
+def get_log_parameters(event_log_id):
+    try:
+        log = event_logs_db.get_event_log(event_log_id)
+        return jsonify(columnsDefinition = log['columns_definition'],kpi = log['positive_outcome'], caseCompletion = log['case_completion'],treatment = log['treatment'],alarmThreshold = log['alarm_threshold']),200
+    except Exception as e:
+        return jsonify(error=str(e)),400
+    
+
 def define_log_column_types(event_log_id):
+    try:
+        event_logs_db.get_event_log(event_log_id)
+    except Exception as e:
+        return jsonify(error = str(e)), 400
+    
     columns_definition = request.get_json().get('columns_definition')
     case_attributes = request.get_json().get('case_attributes')
 
@@ -65,15 +97,19 @@ def define_log_column_types(event_log_id):
     except Exception as e:
         jsonify(error=str(e)),400
 
-    event_logs_db.update_event_log( event_log_id,{
+    try:
+        event_logs_db.update_event_log( event_log_id,{
                                         "activities": activities,
                                         "case_attributes": case_attributes,
                                         "columns_definition": columns_definition,
                                         "outcome_options": outcome_options,
                                         "treatment_options": treatment_options})
+    except Exception as e:
+        jsonify(error = str(e)),500
+
     return jsonify(message='Column types updated successfully'),200
     
-def define_parameters(event_log_id):
+def define_log_parameters(event_log_id):
     positive_outcome = request.get_json().get('positive_outcome')
     treatment = request.get_json().get('treatment')
     alarm_threshold = request.get_json().get('alarm_threshold')
@@ -107,6 +143,10 @@ def define_parameters(event_log_id):
                             })
     return jsonify(message='Parameters saved successfully'),200
 
+
+# Project
+
+
 def get_project_status(event_log_id):
     try:
         log = event_logs_db.get_event_log(event_log_id)
@@ -132,7 +172,7 @@ def start_simulation(event_log_id):
     
     project_id = log.get('project_id')
     status = prcore_service.get_project_status(project_id)
-    if status != 'TRAINED':
+    if status != PROJECT_STATUS.TRAINED:
         return jsonify(message=f'Cannot start the simulation, project status: {status}'), 400
     
     try:
@@ -148,7 +188,7 @@ def start_simulation(event_log_id):
     except Exception as e:
         print(str(e))
         return jsonify(message=str(e)),404
-    return jsonify(message = res,status = status)
+    return jsonify(message = res)
 
 def stop_simulation(event_log_id):
     try: 
@@ -158,7 +198,7 @@ def stop_simulation(event_log_id):
     
     project_id = log.get('project_id')
     status = prcore_service.get_project_status(project_id)
-    if status not in ['STREAMING','SIMULATING']:
+    if status not in [PROJECT_STATUS.STREAMING,PROJECT_STATUS.SIMULATING]:
         return jsonify(message=f'Cannot stop the simulation, project status: {status}'), 400
     
     try:
@@ -168,4 +208,24 @@ def stop_simulation(event_log_id):
     
     status = prcore_service.get_project_status(project_id)
     print('Simulation stopped! Project status: ' + status)
-    return jsonify(message = res,status = status)
+    return jsonify(message = res)
+
+def clear_stream(event_log_id):
+    try: 
+        log = event_logs_db.get_event_log(event_log_id)
+    except Exception as e:
+        return jsonify(error = str(e)), 400
+    
+    project_id = log.get('project_id')
+
+    try:
+        res = prcore_service.clear_streamed_data(project_id)
+    except Exception as e:
+        return jsonify(error=str(e)),400
+    
+    try:
+        cases_db.delete_cases_by_log_id(event_log_id)
+    except Exception as e:
+        return jsonify(error=str(e)),500
+    
+    return jsonify(message = res)

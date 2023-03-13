@@ -1,8 +1,8 @@
 from dateutil import parser
 from datetime import timedelta
 
-from kairos.models.cases_model import ( get_case_by_project_id, get_case, save_case, update_case, update_case_prescriptions, update_case_performance)
-from kairos.models.event_logs_model import get_event_log_by_project_id
+import kairos.models.cases_model as cases_db
+import kairos.models.event_logs_model as event_logs_db
 
 EVALUATION_METHODS = {
             'EQUAL':lambda x,y: x == y,'NOT_EQUAL':lambda x,y: x!=y,'CONTAINS': lambda x,y: y in x,'NOT_CONTAINS':lambda x,y: y not in x,
@@ -30,10 +30,11 @@ def validate_timestamp(data,columns_definition):
 def record_event(event_data,event_id,project_id):
     print('Recording event...')
     try:
-        log = get_event_log_by_project_id(project_id)
+        log = event_logs_db.get_event_log_by_project_id(project_id)
     except Exception as e:
         print(str(e))
         return
+    event_log_id = log.get('_id')
     columns_definition = log.get("columns_definition")
     case_attributes_definition = log.get('case_attributes')
 
@@ -61,20 +62,20 @@ def record_event(event_data,event_id,project_id):
     case_completed = event_data.get('case_completed')
 
     try:
-        old_case = get_case_by_project_id(case_id,project_id)
+        old_case = cases_db.get_case_by_log_id(case_id,event_log_id)
     except Exception as e:
         return e
     
     if not old_case:
-        _id = save_case(case_id,project_id,case_completed,activity,prescriptions_with_output,case_attributes).inserted_id
+        _id = cases_db.save_case(case_id,event_log_id,case_completed,activity,prescriptions_with_output,case_attributes).inserted_id
         print(f'case id: {case_id}, type of case id: {type(case_id)}')
         print(f'saved case: {_id}, type of id: {type(_id)}')
     else:
         new_event_id = old_case['activities'][-1]['event_id']
         print(new_event_id)
-        update_case_prescriptions(case_id,new_event_id,activity['ACTIVITY'])
+        cases_db.update_case_prescriptions(case_id,new_event_id,activity['ACTIVITY'])
         print('updated case prescriptions')
-        update_case(case_id,case_completed,activity,prescriptions_with_output)
+        cases_db.update_case(case_id,case_completed,activity,prescriptions_with_output)
         print(f'updated case: {case_id}')
 
     case_performance = {}
@@ -84,13 +85,13 @@ def record_event(event_data,event_id,project_id):
         print(str(e))
         return e
 
-    update_case_performance(case_id,case_performance)
+    cases_db.update_case_performance(case_id,case_performance)
     print(f'updated case performance: {case_id}')
 
 def calculate_case_performance(case_id,positive_outcome, columns_definition):
     print('calculating case performance...')
     try:
-        my_case = get_case(case_id)
+        my_case = cases_db.get_case(case_id)
     except Exception as e:
         return e
     

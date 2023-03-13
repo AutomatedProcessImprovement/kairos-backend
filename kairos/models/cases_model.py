@@ -11,15 +11,21 @@ def get_cases():
     except Exception as e:
         return e
 
-def get_cases_by_project_id(project_id):
+def get_cases_by_log_id(event_log_id):
     try:
-        return list(db.cases.find({"project_id": int(project_id)}))
+        return list(db.cases.find({"event_log_id": int(event_log_id)}))
     except Exception as e:
         return e
 
-def get_case_by_project_id(case_id,project_id):
+def delete_cases_by_log_id(event_log_id):
     try:
-        return db.cases.find_one({"project_id":int(project_id),"_id":case_id})
+        return db.cases.delete_many({"event_log_id": int(event_log_id)})
+    except Exception as e:
+        return e
+
+def get_case_by_log_id(case_id,event_log_id):
+    try:
+        return db.cases.find_one({"event_log_id":int(event_log_id),"_id":case_id})
     except (StopIteration) as _:
         return None
     except Exception as e:
@@ -33,11 +39,11 @@ def get_case(case_id):
     except Exception as e:
         return e
     
-def save_case(case_id,project_id,case_completed,activity,prescriptions_with_output,case_attributes):
+def save_case(case_id,event_log_id,case_completed,activity,prescriptions_with_output,case_attributes):
     activity['prescriptions'] = prescriptions_with_output
     new_case = {
         '_id':case_id,
-        'project_id':project_id,
+        'event_log_id':event_log_id,
         'case_completed':case_completed,
         'activities':[activity],
         'case_attributes':case_attributes,

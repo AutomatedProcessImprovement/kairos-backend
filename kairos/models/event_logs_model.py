@@ -10,9 +10,9 @@ def get_event_logs():
         return e
 
 
-def get_event_log(file_id):
+def get_event_log(event_log_id):
     try:
-        log = db.files.find_one({"_id": int(file_id)})
+        log = db.files.find_one({"_id": int(event_log_id)})
         return log
     except (StopIteration) as _:
         return None
@@ -40,9 +40,15 @@ def save_event_log(filename, event_log_id, columns_header,columns_definition,col
         }
     return db.files.insert_one(event_log)
     
-def update_event_log(file_id,data):
+def update_event_log(event_log_id,data):
     try:
-        response = db.files.find_one_and_update({"_id": int(file_id)},{"$set": data})
+        response = db.files.find_one_and_update({"_id": int(event_log_id)},{"$set": data})
         return response
+    except Exception as e:
+        return e
+    
+def delete_event_log(event_log_id):
+    try:
+        db.files.delete_one({"_id": int(event_log_id)})
     except Exception as e:
         return e
