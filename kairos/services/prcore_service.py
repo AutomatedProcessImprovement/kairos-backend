@@ -6,24 +6,20 @@ from flask import current_app
 
 from kairos.services.utils import record_event
 
-PRCORE_BASE_URL = current_app.config.get('PRCORE_BASE_URL')
-PRCORE_HEADERS = current_app.config.get('PRCORE_HEADERS')
-
-
 def upload_file(file, delimiter):
-    res = requests.post(PRCORE_BASE_URL + '/event_log', 
+    res = requests.post(current_app.config.get('PRCORE_BASE_URL') + '/event_log', 
                         files={'file': (file.filename, file.stream, file.content_type)}, 
                         data={"separator": str(delimiter)}, 
-                        headers=PRCORE_HEADERS)
+                        headers=current_app.config.get('PRCORE_HEADERS'))
     try:
         return res.json()
     except Exception as e:
         return e
     
 def define_columns(event_log_id,data):
-    res = requests.put(PRCORE_BASE_URL + f'/event_log/{event_log_id}', 
+    res = requests.put(current_app.config.get('PRCORE_BASE_URL') + f'/event_log/{event_log_id}', 
                        json={'columns_definition':data}, 
-                       headers=PRCORE_HEADERS)
+                       headers=current_app.config.get('PRCORE_HEADERS'))
     try:
         return res.json()
     except Exception as e:
@@ -36,22 +32,22 @@ def define_parameters(project_id,event_log_id,positive_outcome,treatment):
             'treatment': [[treatment]]
             }
     if project_id:
-        res = requests.put(PRCORE_BASE_URL + f'/project/{project_id}/definition', 
-                        headers=PRCORE_HEADERS, 
+        res = requests.put(current_app.config.get('PRCORE_BASE_URL') + f'/project/{project_id}/definition', 
+                        headers=current_app.config.get('PRCORE_HEADERS'), 
                         json=data)
     else:
-        res = requests.post(PRCORE_BASE_URL + '/project', 
-                        headers=PRCORE_HEADERS, 
+        res = requests.post(current_app.config.get('PRCORE_BASE_URL') + '/project', 
+                        headers=current_app.config.get('PRCORE_HEADERS'), 
                         json=data)
     try:
         # print(res.json())
-        return res.json()
+        return res.json().get('project',{}).get('id')
     except Exception as e:
         return e
 
 def get_project_status(project_id):
     # print(project_id)
-    res = requests.get(PRCORE_BASE_URL + f'/project/{project_id}', headers=PRCORE_HEADERS)
+    res = requests.get(current_app.config.get('PRCORE_BASE_URL') + f'/project/{project_id}', headers=current_app.config.get('PRCORE_HEADERS'))
     try:
         # print(res.json())
         return res.json().get('project',{}).get('status')
@@ -60,14 +56,14 @@ def get_project_status(project_id):
         return e
 
 def start_simulation(project_id):
-    res = requests.put(PRCORE_BASE_URL + f'/project/{project_id}/stream/start/simulating', headers=PRCORE_HEADERS)
+    res = requests.put(current_app.config.get('PRCORE_BASE_URL') + f'/project/{project_id}/stream/start/simulating', headers=current_app.config.get('PRCORE_HEADERS'))
     try:
         return res.json()
     except Exception as e:
         return e
 
 def stop_simulation(project_id):
-    res = requests.put(PRCORE_BASE_URL + f'/project/{project_id}/stream/stop', headers=PRCORE_HEADERS)
+    res = requests.put(current_app.config.get('PRCORE_BASE_URL') + f'/project/{project_id}/stream/stop', headers=current_app.config.get('PRCORE_HEADERS'))
     try:
         return res.json()
     except Exception as e:
@@ -75,7 +71,7 @@ def stop_simulation(project_id):
 
 def start_stream(project_id):
     print(f'Starting the stream for project Id: {project_id}')
-    response = requests.get(PRCORE_BASE_URL + f'/project/{project_id}/stream/result', headers=PRCORE_HEADERS, stream=True)
+    response = requests.get(current_app.config.get('PRCORE_BASE_URL') + f'/project/{project_id}/stream/result', headers=current_app.config.get('PRCORE_HEADERS'), stream=True)
     print(f'got response: {response}')
     try:
         client = sseclient.SSEClient(response)

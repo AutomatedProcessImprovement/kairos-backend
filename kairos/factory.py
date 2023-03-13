@@ -1,4 +1,4 @@
-from flask import Flask
+from flask import Flask, Blueprint
 from flask.json import JSONEncoder
 from flask_cors import CORS
 
@@ -22,8 +22,10 @@ def create_app():
     app = Flask(__name__)
     CORS(app)
     app.json_encoder = MongoJsonEncoder
-    app.register_blueprint(cases_api)
-    app.register_blueprint(event_logs_api)
-
+    api = Blueprint('api', __name__, url_prefix='/api')
+    api.register_blueprint(cases_api)
+    api.register_blueprint(event_logs_api)
+    
+    app.register_blueprint(api)
 
     return app
