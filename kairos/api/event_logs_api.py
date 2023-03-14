@@ -16,10 +16,10 @@ event_logs_api.route('/<event_log_id>',methods=['GET'])(event_logs_service.get_l
 
 event_logs_api.route('/<event_log_id>', methods=['DELETE'])(event_logs_service.delete_log)
 
+event_logs_api.route('/<event_log_id>/column_types', methods=['PUT'])(event_logs_service.define_log_column_types)
+
 event_logs_api.route('/<event_log_id>/parameters',methods=['GET'])(event_logs_service.get_log_parameters)
 event_logs_api.route('/<event_log_id>/parameters',methods=['POST'])(event_logs_service.define_log_parameters)
-
-event_logs_api.route('/<event_log_id>/column_types', methods=['PUT'])(event_logs_service.define_log_column_types)
 
 # Project
 

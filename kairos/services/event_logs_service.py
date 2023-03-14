@@ -11,16 +11,16 @@ import kairos.services.utils as k_utils
 def get_logs():
     try: 
         logs = event_logs_db.get_event_logs()
-        return jsonify(event_logs = logs),200
     except Exception as e:
-        return jsonify(error=str(e)),400
+        return jsonify(error=str(e)),500
+    return jsonify(event_logs = logs),200
 
 def get_log(event_log_id):
     try:
         log = event_logs_db.get_event_log(event_log_id)
-        return jsonify(event_log = log),200
     except Exception as e:
-        return jsonify(error=str(e)),400
+        return jsonify(error=str(e)),500
+    return jsonify(event_log = log),200
     
 def save_log():
     if 'file' not in request.files:
@@ -43,11 +43,14 @@ def save_log():
         columns_definition = res.get('columns_inferred_definition')
         columns_data = res.get('columns_data')
     except Exception as e:
-        print(res)
+        print(e)
         return jsonify(error=str(res)), 400
-
-    saved_id = event_logs_db.save_event_log(file.filename, event_log_id, columns_header, columns_definition,
+    try:
+        saved_id = event_logs_db.save_event_log(file.filename, event_log_id, columns_header, columns_definition,
                                  columns_data, delimiter, datetime.now()).inserted_id
+    except Exception as e:
+        return jsonify(error = str(e)),500
+    
     return jsonify(logId = str(saved_id)), 200
 
 
@@ -60,13 +63,14 @@ def delete_log(event_log_id):
     project_id = log.get('project_id')
     if project_id != None:
         try:
-            prcore_service.delete_project(project_id)
+            res = prcore_service.delete_project(project_id)
         except Exception as e:
-            jsonify(error=str(e)),400
+            print(str(e))
+            jsonify(error=str(res)),400
 
     try:
         cases_db.delete_cases_by_log_id(event_log_id)
-        event_logs_db.delete_event_log( event_log_id)
+        event_logs_db.delete_event_log(event_log_id)
     except Exception as e:
         return jsonify(error=str(e)),500
     
@@ -76,16 +80,20 @@ def delete_log(event_log_id):
 def get_log_parameters(event_log_id):
     try:
         log = event_logs_db.get_event_log(event_log_id)
-        return jsonify(columnsDefinition = log['columns_definition'],kpi = log['positive_outcome'], caseCompletion = log['case_completion'],treatment = log['treatment'],alarmThreshold = log['alarm_threshold']),200
     except Exception as e:
-        return jsonify(error=str(e)),400
+        return jsonify(error=str(e)),500
+    return jsonify(columnsDefinition = log.get('columns_definition'),
+                    kpi = log.get('positive_outcome'), 
+                    caseCompletion = log.get('case_completion'),
+                    treatment = log.get('treatment'),
+                    alarmThreshold = log.get('alarm_threshold')),200
     
 
 def define_log_column_types(event_log_id):
     try:
         event_logs_db.get_event_log(event_log_id)
     except Exception as e:
-        return jsonify(error = str(e)), 400
+        return jsonify(error = str(e)), 400    
     
     columns_definition = request.get_json().get('columns_definition')
     case_attributes = request.get_json().get('case_attributes')
@@ -114,6 +122,11 @@ def define_log_column_types(event_log_id):
     return jsonify(message='Column types updated successfully'),200
     
 def define_log_parameters(event_log_id):
+    try:
+        log = event_logs_db.get_event_log(event_log_id)
+    except Exception as e:
+        return jsonify(error = str(e)), 400
+    
     positive_outcome = request.get_json().get('positive_outcome')
     treatment = request.get_json().get('treatment')
     alarm_threshold = request.get_json().get('alarm_threshold')
@@ -122,11 +135,6 @@ def define_log_parameters(event_log_id):
     if not all([positive_outcome, treatment, alarm_threshold, case_completion]):
         return jsonify('All parameters should be defined'),400
     
-    try:
-        log = event_logs_db.get_event_log(event_log_id)
-    except Exception as e:
-        return jsonify(error = str(e)), 400
-    
     columns_definition = log.get('columns_definition')
     positive_outcome['value'] = k_utils.validate_timestamp(positive_outcome,columns_definition)
     treatment['value'] = k_utils.validate_timestamp(treatment,columns_definition)
@@ -134,8 +142,10 @@ def define_log_parameters(event_log_id):
     project_id = log.get('project_id')
 
     try:
-        project_id = prcore_service.define_parameters(project_id,event_log_id,positive_outcome,treatment)
+        res = prcore_service.define_parameters(project_id,event_log_id,positive_outcome,treatment)
+        project_id = res.get('project',{}).get('id')
     except Exception as e:
+        print(res)
         return jsonify(error=str(e)),400
     
     event_logs_db.update_event_log(event_log_id,{
@@ -156,8 +166,6 @@ def get_project_status(event_log_id):
         log = event_logs_db.get_event_log(event_log_id)
     except Exception as e:
         return jsonify(error = str(e)), 400
-    if not log:
-        return jsonify(error = 'log not found'), 400
     
     project_id = log.get('project_id')
     try:
