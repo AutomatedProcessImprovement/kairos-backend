@@ -7,7 +7,7 @@ import kairos.models.event_logs_model as event_logs_db
 import kairos.services.prcore as prcore
 import kairos.services.utils as k_utils
 
-event_logs_api = Blueprint('event_logs_api','event_logs_api',url_prefix='/frontend_api')
+event_logs_api = Blueprint('event_logs_api','event_logs_api',url_prefix='')
 
 CORS(event_logs_api)
 

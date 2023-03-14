@@ -4,7 +4,7 @@ import kairos.models.event_logs_model as event_logs_db
 
 from flask_cors import CORS
 
-cases_api = Blueprint('cases_api','cases_api',url_prefix='/frontend_api')
+cases_api = Blueprint('cases_api','cases_api',url_prefix='')
 
 CORS(cases_api)
 
