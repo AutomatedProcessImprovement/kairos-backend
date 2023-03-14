@@ -1,5 +1,6 @@
 from dateutil import parser
 from datetime import timedelta
+import zipfile
 
 import kairos.models.cases_model as cases_db
 import kairos.models.event_logs_model as event_logs_db
@@ -16,8 +17,15 @@ def expect(input, expectedType, field):
         return input
     raise AssertionError("Invalid input for type", field)
 
-def is_allowed_file(filename):
-    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ['.csv','.xes']
+def is_allowed_file(file):
+    extension = file.filename.rsplit('.', 1)[1].lower()
+    if extension == 'zip':
+        zip = zipfile.ZipFile(file).filelist
+        if zip:
+            filename = zip[0].filename
+            extension = filename.rsplit('.', 1)[1].lower()
+    result = extension in ['xes','csv']
+    return result
 
 def validate_timestamp(data,columns_definition):
     timeTypes = ['TIMESTAMP','START_TIMESTAMP','END_TIMESTAMP','DATETIME']

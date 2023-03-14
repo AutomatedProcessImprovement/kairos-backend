@@ -21,15 +21,18 @@ def get_log(event_log_id):
         return jsonify(event_log = log),200
     except Exception as e:
         return jsonify(error=str(e)),400
-
     
 def save_log():
     if 'file' not in request.files:
         return jsonify(error = 'File not found'), 400
     
     file = request.files['file']
-    if not file and not k_utils.is_allowed_file(file.filename):
-        return jsonify(error='Incorrect file extension'), 400
+    if not file:
+        return jsonify(error='File cannot be none'), 400
+    
+    if not k_utils.is_allowed_file(file):
+        return jsonify(error = 'Incorrect file extension'),400
+    
     delimiter = request.form.get('delimiter')
     if not delimiter: delimiter = ','
     
@@ -40,7 +43,8 @@ def save_log():
         columns_definition = res.get('columns_inferred_definition')
         columns_data = res.get('columns_data')
     except Exception as e:
-        return jsonify(error=str(e)), 400
+        print(res)
+        return jsonify(error=str(res)), 400
 
     saved_id = event_logs_db.save_event_log(file.filename, event_log_id, columns_header, columns_definition,
                                  columns_data, delimiter, datetime.now()).inserted_id
