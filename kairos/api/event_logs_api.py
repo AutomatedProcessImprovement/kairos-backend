@@ -48,12 +48,16 @@ def save_file():
     
     try:
         res = prcore.upload_file(file,delimiter)
+        event_log_id = res.get('event_log_id')
+        columns_header = res.get('columns_header')
+        columns_definition = res.get('columns_inferred_definition')
+        columns_data = res.get('columns_data')
     except Exception as e:
+        print(res)
         return jsonify(error=str(e)), 400
 
-    event_log_id = res.get('event_log_id')
-    file_id = event_logs_db.save_event_log(file.filename, event_log_id, res.get('columns_header'), res.get('columns_inferred_definition'),
-                                 res.get('columns_data'), delimiter, datetime.now()).inserted_id
+    file_id = event_logs_db.save_event_log(file.filename, event_log_id, columns_header, columns_definition,
+                                 columns_data, delimiter, datetime.now()).inserted_id
     return jsonify(fileId = str(file_id)), 200
 
 @event_logs_api.route('/update/<file_id>', methods=['PUT'])
@@ -63,15 +67,18 @@ def update_types(file_id):
     try:
         res = prcore.define_columns(file_id,columns_definition)
         activities = list(res.get('activities_count').keys())
+        outcome_options = res.get('outcome_options')
+        treatment_options = res.get('treatment_options')
     except Exception as e:
+        print(res)
         jsonify(error=str(e)),400
 
     event_logs_db.update_event_log( file_id,{
                                         "activities": activities,
                                         "case_attributes": case_attributes,
                                         "columns_definition": columns_definition,
-                                        "outcome_options": res.get('outcome_options'),
-                                        "treatment_options": res.get('treatment_options')})
+                                        "outcome_options": outcome_options,
+                                        "treatment_options": treatment_options})
     return jsonify(message='Types updated successfully'),200
 
 @event_logs_api.route('/parameters/<file_id>', methods=['POST'])
@@ -94,10 +101,11 @@ def define_parameters(file_id):
 
     try:
         res = prcore.define_parameters(project_id,file_id,positive_outcome,treatment)
+        project_id = res.get('project',{}).get('id')
     except Exception as e:
+        print(res)
         return jsonify(error=str(e)),400
     
-    project_id = res.get('project',{}).get('id')
     event_logs_db.update_event_log(file_id,{
                             "project_id": project_id,
                             "positive_outcome": positive_outcome,
@@ -123,6 +131,7 @@ def get_project_status(file_id):
         res = prcore.get_project_status(project_id)
         response = jsonify(status = res),200
     except Exception as e:
+        print(res)
         return jsonify(error=str(e)),400
     
     return response
@@ -147,7 +156,6 @@ def start_simulation(file_id):
         return jsonify(error=str(e)),400
     
     status = prcore.get_project_status(project_id)
-    print(res)
     try:
         prcore.start_stream(project_id)
     except Exception as e:
