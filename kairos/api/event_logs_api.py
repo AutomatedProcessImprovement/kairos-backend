@@ -80,6 +80,7 @@ def define_parameters(file_id):
     treatment = request.get_json().get('treatment')
     alarm_threshold = request.get_json().get('alarm_threshold')
     case_completion = request.get_json().get('case_completion')
+    parameters_description = request.get_json().get('parameters_description')
 
     try:
         file = event_logs_db.get_event_log(file_id)
@@ -103,7 +104,8 @@ def define_parameters(file_id):
                             "positive_outcome": positive_outcome,
                             "treatment": treatment,
                             "alarm_threshold": alarm_threshold,
-                            "case_completion": case_completion
+                            "case_completion": case_completion,
+                            'parameters_description': parameters_description
                             })
     return jsonify(message='Parameters saved successfully'),200
 
