@@ -11,14 +11,22 @@ def upload_file(file, delimiter):
                         files={'file': (file.filename, file.stream, file.content_type)}, 
                         data={"separator": str(delimiter)}, 
                         headers=current_app.config.get('PRCORE_HEADERS'))
-    return res.json()
+    try:
+        return res.json()
+    except Exception as e:
+        print(res)
+        return e
     
 def define_columns(event_log_id,data):
     res = requests.put(current_app.config.get('PRCORE_BASE_URL') + f'/event_log/{event_log_id}', 
                        json={'columns_definition':data}, 
                        headers=current_app.config.get('PRCORE_HEADERS'))
-    return res.json()
-
+    try:
+        print(res.json())
+        return res.json()
+    except Exception as e:
+        return e
+    
 def define_parameters(project_id,event_log_id,positive_outcome,treatment):
     data = {
             'event_log_id': event_log_id,
@@ -33,32 +41,50 @@ def define_parameters(project_id,event_log_id,positive_outcome,treatment):
         res = requests.post(current_app.config.get('PRCORE_BASE_URL') + '/project', 
                         headers=current_app.config.get('PRCORE_HEADERS'), 
                         json=data)
-    return res.json()
+    try:
+        return res.json()
+    except Exception as e:
+        return e
 
 def delete_project(project_id):
     # print(project_id)
     res = requests.delete(current_app.config.get('PRCORE_BASE_URL') + f'/project/{project_id}', headers=current_app.config.get('PRCORE_HEADERS'))
-    return res.json()
+    try:
+        return res.json()
+    except Exception as e:
+        return e
 
 def get_project_status(project_id):
     # print(project_id)
     res = requests.get(current_app.config.get('PRCORE_BASE_URL') + f'/project/{project_id}', headers=current_app.config.get('PRCORE_HEADERS'))
 
-    return res.json().get('project',{}).get('status')
+    try:
+        return res.json().get('project',{}).get('status')
+    except Exception as e:
+        return e
 
 
 def start_simulation(project_id):
     res = requests.put(current_app.config.get('PRCORE_BASE_URL') + f'/project/{project_id}/stream/start/simulating', headers=current_app.config.get('PRCORE_HEADERS'))
     
-    return res.json()
+    try:
+        return res.json()
+    except Exception as e:
+        return e
 
 def stop_simulation(project_id):
     res = requests.put(current_app.config.get('PRCORE_BASE_URL') + f'/project/{project_id}/stream/stop', headers=current_app.config.get('PRCORE_HEADERS'))
-    return res.json()
+    try:
+        return res.json()
+    except Exception as e:
+        return e
 
 def clear_streamed_data(project_id):
     res = requests.put(current_app.config.get('PRCORE_BASE_URL') + f'/project/{project_id}/stream/clear', headers=current_app.config.get('PRCORE_HEADERS'))
-    return res.json()
+    try:
+        return res.json()
+    except Exception as e:
+        return e
 
 def start_stream(project_id):
     print(f'Starting the stream for project Id: {project_id}')
