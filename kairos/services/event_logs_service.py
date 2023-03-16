@@ -131,6 +131,7 @@ def define_log_parameters(event_log_id):
     treatment = request.get_json().get('treatment')
     alarm_threshold = request.get_json().get('alarm_threshold')
     case_completion = request.get_json().get('case_completion')
+    parameters_description = request.get_json().get('parameters_description')
 
     if not all([positive_outcome, treatment, alarm_threshold, case_completion]):
         return jsonify('All parameters should be defined'),400
@@ -153,7 +154,8 @@ def define_log_parameters(event_log_id):
                             "positive_outcome": positive_outcome,
                             "treatment": treatment,
                             "alarm_threshold": alarm_threshold,
-                            "case_completion": case_completion
+                            "case_completion": case_completion,
+                            "parameters_description": parameters_description
                             })
     return jsonify(message='Parameters saved successfully'),200
 
