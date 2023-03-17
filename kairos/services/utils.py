@@ -69,6 +69,7 @@ def record_event(event_data,event_id,project_id):
     prescriptions_with_output = [prescriptions[p] for p in prescriptions if prescriptions[p]["output"]]
     case_completed = event_data.get('case_completed')
 
+    old_case = None
     try:
         old_case = cases_db.get_case_by_log_id(case_id,event_log_id)
     except Exception as e:
@@ -76,13 +77,13 @@ def record_event(event_data,event_id,project_id):
     
     if not old_case:
         _id = cases_db.save_case(case_id,event_log_id,case_completed,activity,prescriptions_with_output,case_attributes).inserted_id
-        print(f'case id: {case_id}, type of case id: {type(case_id)}')
-        print(f'saved case: {_id}, type of id: {type(_id)}')
-    else:
-        new_event_id = old_case['activities'][-1]['event_id']
-        print(new_event_id)
-        cases_db.update_case_prescriptions(case_id,new_event_id,activity['ACTIVITY'])
-        print('updated case prescriptions')
+        print(f'saved case: {_id}')
+    else: 
+        # try:
+        #     update_case_prescriptions(case_id,activity['ACTIVITY'])
+        # except Exception as e:
+        #     print(f'Failed to update case prescriptions: {e}')
+
         cases_db.update_case(case_id,case_completed,activity,prescriptions_with_output)
         print(f'updated case: {case_id}')
 
@@ -90,21 +91,22 @@ def record_event(event_data,event_id,project_id):
     try:
         case_performance = calculate_case_performance(case_id,log.get('positive_outcome'),columns_definition)
     except Exception as e:
-        print(str(e))
-        return e
+        print(f'Failed to calculate case perfrmance: {e}')
 
     cases_db.update_case_performance(case_id,case_performance)
     print(f'updated case performance: {case_id}')
 
+def update_case_prescriptions(case_id,new_activity):
+    my_case = cases_db.get_case(case_id)
+
+    previous_event_id = my_case['activities'][-1]['event_id']
+    cases_db.update_case_prescriptions(case_id,previous_event_id,new_activity)
+
+    print('updated case prescriptions')
+
 def calculate_case_performance(case_id,positive_outcome, columns_definition):
     print('calculating case performance...')
-    try:
-        my_case = cases_db.get_case(case_id)
-    except Exception as e:
-        return e
-    
-    if not my_case:
-        raise Exception(f'No case with id {case_id} found.')
+    my_case = cases_db.get_case(case_id)
     
     column = positive_outcome['column']
     value = positive_outcome['value']
@@ -120,10 +122,8 @@ def calculate_case_performance(case_id,positive_outcome, columns_definition):
         if column == 'DURATION':
             duration = value.split(' ')
             value = int(duration[0])
-            try:
-                actual_value = calculate_duration(start,end,duration[1])
-            except Exception as e:
-                return e
+            actual_value = calculate_duration(start,end,duration[1])
+
         else:
             raise Exception(f'Unsupported column: {column}')
     else:
@@ -169,11 +169,8 @@ def calculate_duration(start,end,unit):
         'seconds':'seconds',
         'second':'seconds'
     }
-    try:
-        start_time = parser.parse(start)
-        end_time = parser.parse(end)
-    except Exception as e:
-        return e
+    start_time = parser.parse(start)
+    end_time = parser.parse(end)
     
     if unit not in time_units:
         raise Exception(f'Invalid time unit for duration: {unit}')
@@ -184,11 +181,9 @@ def calculate_duration(start,end,unit):
     return duration
 
 def calculate_duration_without_units(start,end):
-    try:
-        start_time = parser.parse(start)
-        end_time = parser.parse(end)
-    except Exception as e:
-        return e
+    start_time = parser.parse(start)
+    end_time = parser.parse(end)
+
     duration = int((end_time - start_time).total_seconds())
     print(duration)
     if duration >= 604800: 
@@ -212,15 +207,9 @@ def parse_value(column_type,value):
     if column_type in ['TEXT','RESOURCE','ACTIVITY']:
         value = str(value)
     elif column_type in ['COST','DURATION','NUMBER']:
-        try:
-            value = float(value)
-        except Exception as e:
-            print('Could not parse to number')
-            return e
+        value = float(value)
+
     elif column_type in ['DATEITME','TIMESTAMP','START_TIMESTAMP','END_TIMESTAMP']:
-        try:
-            value = parser.parse(value, ignoretz=True)
-        except Exception as e:
-            print('Could not parse to date')
-            return e
+        value = parser.parse(value, ignoretz=True)
+
     return value

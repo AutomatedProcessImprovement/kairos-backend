@@ -45,10 +45,21 @@ def update_case(case_id,case_completed,activity,prescriptions_with_output):
 
 
 def update_case_prescriptions(case_id,event_id,new_activity):
-    db.cases.find_one_and_update(
+    db.cases.update_many(
         {"_id": case_id},
-        {"$set": {'activities.$[activity].prescriptions.$[prescription].status': 'accepted'}},
-        {"arrayFilters": [{'activity.event_id': event_id},{'prescription.type': 'NEXT_ACTIVITY', 'prescription.output': new_activity}]}
+        {
+            "$set": {'activities.$[activity].prescriptions.status': 'DISCARDED'},
+            "arrayFilters": [{'activity.event_id': str(event_id)}]
+        },
+        upsert=False
+    )
+    db.cases.update_one(
+        {"_id": case_id},
+        {
+            "$set": {'activities.$[activity].prescriptions.$[prescription].status': 'ACCEPTED'},
+            "arrayFilters": [{'activity.event_id': str(event_id)},{'prescription.type': 'NEXT_ACTIVITY', 'prescription.output': new_activity}]
+        },
+        upsert=False
     )
 
     

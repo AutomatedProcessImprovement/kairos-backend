@@ -4,7 +4,6 @@ from flask_cors import CORS
 
 from bson import json_util, ObjectId
 from datetime import datetime
-import os
 
 from kairos.api.cases_api import cases_api
 from kairos.api.event_logs_api import event_logs_api
@@ -13,7 +12,7 @@ from kairos.api.event_logs_api import event_logs_api
 class MongoJsonEncoder(JSONEncoder):
     def default(self, obj):
         if isinstance(obj, datetime):
-            return obj.strftime("%Y-%m-%dT%H:%M:%SZ")
+            return obj.strftime("%Y-%m-%dT%H:%M:%S")
         if isinstance(obj, ObjectId):
             return str(obj)
         return json_util.default(obj, json_util.CANONICAL_JSON_OPTIONS)

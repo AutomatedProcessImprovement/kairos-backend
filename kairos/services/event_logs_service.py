@@ -35,7 +35,7 @@ def save_log():
     
     delimiter = request.form.get('delimiter')
     if not delimiter: delimiter = ','
-    
+
     try:
         res = prcore_service.upload_file(file,delimiter)
         event_log_id = res.get('event_log_id')
@@ -43,8 +43,7 @@ def save_log():
         columns_definition = res.get('columns_inferred_definition')
         columns_data = res.get('columns_data')
     except Exception as e:
-        print(e)
-        return jsonify(error=str(res)), 400
+        return jsonify(error=str(e)), 500
     try:
         saved_id = event_logs_db.save_event_log(file.filename, event_log_id, columns_header, columns_definition,
                                  columns_data, delimiter, datetime.now()).inserted_id
@@ -63,10 +62,9 @@ def delete_log(event_log_id):
     project_id = log.get('project_id')
     if project_id != None:
         try:
-            res = prcore_service.delete_project(project_id)
+            prcore_service.delete_project(project_id)
         except Exception as e:
-            print(str(e))
-            jsonify(error=str(res)),400
+            jsonify(error=str(e)),400
 
     try:
         cases_db.delete_cases_by_log_id(event_log_id)
@@ -146,7 +144,6 @@ def define_log_parameters(event_log_id):
         res = prcore_service.define_parameters(project_id,event_log_id,positive_outcome,treatment)
         project_id = res.get('project',{}).get('id')
     except Exception as e:
-        print(res)
         return jsonify(error=str(e)),400
     
     event_logs_db.update_event_log(event_log_id,{
@@ -171,17 +168,16 @@ def get_project_status(event_log_id):
     
     project_id = log.get('project_id')
     try:
-        res = prcore_service.get_project_status(project_id)
+        status = prcore_service.get_project_status(project_id)
+        return jsonify(status = status),200
     except Exception as e:
         return jsonify(error=str(e)),400
     
-    return jsonify(status = res),200
 
 def start_simulation(event_log_id):
     try: 
         log = event_logs_db.get_event_log(event_log_id)
     except Exception as e:
-        print(str(e))
         return jsonify(error = str(e)), 400
     
     project_id = log.get('project_id')
@@ -196,13 +192,17 @@ def start_simulation(event_log_id):
         return jsonify(error=str(e)),400
     
     status = prcore_service.get_project_status(project_id)
-    print(res)
     try:
         prcore_service.start_stream(project_id)
     except Exception as e:
+        try:
+            prcore_service.stop_simulation(project_id)
+        except Exception as ex:
+            print(str(ex))
         print(str(e))
-        return jsonify(message=str(e)),404
-    return jsonify(message = res)
+        return jsonify(message="Something went wrong. Stopping simulation..."),500
+    
+    return jsonify(message = res),200
 
 def stop_simulation(event_log_id):
     try: 
@@ -233,7 +233,7 @@ def clear_stream(event_log_id):
     project_id = log.get('project_id')
 
     try:
-        res = prcore_service.clear_streamed_data(project_id)
+        prcore_service.clear_streamed_data(project_id)
     except Exception as e:
         return jsonify(error=str(e)),400
     
@@ -242,4 +242,4 @@ def clear_stream(event_log_id):
     except Exception as e:
         return jsonify(error=str(e)),500
     
-    return jsonify(message = res)
+    return jsonify(message = 'Successfully cleared streamed data.'),200

@@ -1,6 +1,5 @@
-from enum import Enum
 
-class Status(Enum):
+class Status:
     WAITING = 'WAITING'
     PREPROCESSING = 'PREPROCESSING'
     TRAINING = 'TRAINING'
