@@ -1,3 +1,4 @@
+from zipfile import BadZipFile
 from flask import request, jsonify
 
 from datetime import datetime
@@ -29,10 +30,14 @@ def save_log():
     file = request.files['file']
     if not file:
         return jsonify(error='File cannot be none'), 400
+    is_allowed_file = False
+    try:
+        is_allowed_file = k_utils.is_allowed_file(file)
+    except BadZipFile as e:
+        return jsonify(error = 'Bad .zip file. Please check to make sure the file is a .zip archive by trying to extract the contents.'),400
     
-    if not k_utils.is_allowed_file(file):
-        return jsonify(error = 'Incorrect file extension'),400
-    
+    if not is_allowed_file:
+        return jsonify(error = 'Incorrect file extension.'),400
     delimiter = request.form.get('delimiter')
     if not delimiter: delimiter = ','
 
@@ -97,7 +102,7 @@ def define_log_column_types(event_log_id):
     case_attributes = request.get_json().get('case_attributes')
 
     if not columns_definition:
-        return jsonify(message = 'Columns definition cannot be null'),400
+        return jsonify(error = 'Columns definition cannot be null'),400
     
     try:
         res = prcore_service.define_columns(event_log_id,columns_definition)
@@ -167,12 +172,13 @@ def get_project_status(event_log_id):
         return jsonify(error = str(e)), 400
     
     project_id = log.get('project_id')
+    if project_id == None:
+        return jsonify(status = 'NULL'),200
     try:
         status = prcore_service.get_project_status(project_id)
         return jsonify(status = status),200
     except Exception as e:
         return jsonify(error=str(e)),400
-    
 
 def start_simulation(event_log_id):
     try: 
@@ -184,7 +190,7 @@ def start_simulation(event_log_id):
     status = prcore_service.get_project_status(project_id)
     print(PROJECT_STATUS.TRAINED)
     if status != PROJECT_STATUS.TRAINED:
-        return jsonify(message=f'Cannot start the simulation, project status: {status}'), 400
+        return jsonify(error=f'Cannot start the simulation, project status: {status}'), 400
     
     try:
         res = prcore_service.start_simulation(project_id)
@@ -201,7 +207,7 @@ def start_simulation(event_log_id):
         except Exception as ex:
             print(str(ex))
         print(str(e))
-        return jsonify(message="Something went wrong. Stopping simulation..."),500
+        return jsonify(error="Something went wrong. Stopping simulation..."),500
     
     return jsonify(message = res),200
 
@@ -214,7 +220,7 @@ def stop_simulation(event_log_id):
     project_id = log.get('project_id')
     status = prcore_service.get_project_status(project_id)
     if status not in [PROJECT_STATUS.STREAMING,PROJECT_STATUS.SIMULATING]:
-        return jsonify(message=f'Cannot stop the simulation, project status: {status}'), 400
+        return jsonify(error=f'Cannot stop the simulation, project status: {status}'), 400
     
     try:
         res = prcore_service.stop_simulation(project_id)
