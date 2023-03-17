@@ -1,3 +1,4 @@
+from zipfile import BadZipFile
 from flask import request, jsonify
 
 from datetime import datetime
@@ -29,9 +30,14 @@ def save_log():
     file = request.files['file']
     if not file:
         return jsonify(error='File cannot be none'), 400
+    is_allowed_file = False
+    try:
+        is_allowed_file = k_utils.is_allowed_file(file)
+    except BadZipFile as e:
+        return jsonify(error = 'Bad .zip file. Please check to make sure the file is a .zip archive by trying to extract the contents.'),400
     
-    if not k_utils.is_allowed_file(file):
-        return jsonify(error = 'Incorrect file extension'),400
+    if not is_allowed_file:
+        return jsonify(error = 'Incorrect file extension.'),400
     
     delimiter = request.form.get('delimiter')
     if not delimiter: delimiter = ','

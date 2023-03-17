@@ -18,7 +18,10 @@ def expect(input, expectedType, field):
     raise AssertionError("Invalid input for type", field)
 
 def is_allowed_file(file):
-    extension = file.filename.rsplit('.', 1)[1].lower()
+    try:
+        extension = file.filename.rsplit('.', 1)[1].lower()
+    except IndexError:
+        return False
     if extension == 'zip':
         zip = zipfile.ZipFile(file).filelist
         if zip:
