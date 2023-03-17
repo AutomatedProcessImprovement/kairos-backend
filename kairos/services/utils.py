@@ -107,8 +107,17 @@ def update_case_prescriptions(case_id,new_activity):
 
     print('updated case prescriptions')
 
+def update_case_prescriptions(case_id,new_activity):
+    my_case = cases_db.get_case(case_id)
+
+    previous_event_id = my_case['activities'][-1]['event_id']
+    cases_db.update_case_prescriptions(case_id,previous_event_id,new_activity)
+
+    print('updated case prescriptions')
+
 def calculate_case_performance(case_id,positive_outcome, columns_definition):
     print('calculating case performance...')
+    my_case = cases_db.get_case(case_id)
     my_case = cases_db.get_case(case_id)
     
     column = positive_outcome['column']
@@ -125,6 +134,8 @@ def calculate_case_performance(case_id,positive_outcome, columns_definition):
         if column == 'DURATION':
             duration = value.split(' ')
             value = int(duration[0])
+            actual_value = calculate_duration(start,end,duration[1])
+
             actual_value = calculate_duration(start,end,duration[1])
 
         else:
@@ -174,6 +185,8 @@ def calculate_duration(start,end,unit):
     }
     start_time = parser.parse(start)
     end_time = parser.parse(end)
+    start_time = parser.parse(start)
+    end_time = parser.parse(end)
     
     if unit not in time_units:
         raise Exception(f'Invalid time unit for duration: {unit}')
@@ -184,6 +197,9 @@ def calculate_duration(start,end,unit):
     return duration
 
 def calculate_duration_without_units(start,end):
+    start_time = parser.parse(start)
+    end_time = parser.parse(end)
+
     start_time = parser.parse(start)
     end_time = parser.parse(end)
 
@@ -212,7 +228,11 @@ def parse_value(column_type,value):
     elif column_type in ['COST','DURATION','NUMBER']:
         value = float(value)
 
+        value = float(value)
+
     elif column_type in ['DATEITME','TIMESTAMP','START_TIMESTAMP','END_TIMESTAMP']:
+        value = parser.parse(value, ignoretz=True)
+
         value = parser.parse(value, ignoretz=True)
 
     return value
