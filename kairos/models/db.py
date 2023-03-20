@@ -11,6 +11,6 @@ def get_db():
 
     if db is None:
 
-        db = g._database = PyMongo(current_app).db
+        db = g._database = PyMongo(current_app).cx['flask_db']
        
     return db
