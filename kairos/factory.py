@@ -24,6 +24,5 @@ def create_app():
     app.json_encoder = MongoJsonEncoder
     app.register_blueprint(cases_api)
     app.register_blueprint(event_logs_api)
-
-
+    
     return app
