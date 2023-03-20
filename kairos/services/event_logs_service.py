@@ -45,7 +45,7 @@ def save_log():
         res = prcore_service.upload_file(file,delimiter)
         event_log_id = res.get('event_log_id')
         columns_header = res.get('columns_header')
-        columns_definition = res.get('columns_inferred_definition')
+        columns_definition = dict(zip(columns_header, res.get('columns_inferred_definition')))
         columns_data = res.get('columns_data')
     except Exception as e:
         return jsonify(error=str(e)), 500
