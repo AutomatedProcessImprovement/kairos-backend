@@ -64,7 +64,6 @@ def record_event(event_data,event_id,project_id):
     for column,value in event_data.get('data').items():
         column_type = columns_definition.get(column)
         value = parse_value(column_type,value)
-        print(f'value: {value}, type: {type(value)}')
         
         if column_type == 'CASE_ID':
             case_id = value
@@ -127,7 +126,6 @@ def update_case_prescriptions(my_case,new_activity,activity_column):
 
 def calculate_case_performance(case_id,positive_outcome, columns_definition, columns_definition_reverse):
     my_case = cases_db.get_case(case_id)
-    my_case = cases_db.get_case(case_id)
     
     column = positive_outcome['column']
     value = positive_outcome['value']
@@ -185,8 +183,6 @@ def calculate_duration(start,end,unit):
     }
     start_time = parser.parse(start)
     end_time = parser.parse(end)
-    start_time = parser.parse(start)
-    end_time = parser.parse(end)
     
     if unit not in time_units:
         raise Exception(f'Invalid time unit for duration: {unit}')
@@ -199,11 +195,7 @@ def calculate_duration_without_units(start,end):
     start_time = parser.parse(start)
     end_time = parser.parse(end)
 
-    start_time = parser.parse(start)
-    end_time = parser.parse(end)
-
     duration = int((end_time - start_time).total_seconds())
-    print(duration)
     if duration >= 604800: 
         unit = 'weeks'
         duration /= 604800
@@ -235,7 +227,5 @@ def parse_value(column_type,value):
             value = str(value)
     elif column_type == COLUMN_TYPE.BOOLEAN:
         value = value in ['True','true',True]
-
-        value = parser.parse(value, ignoretz=True)
 
     return value
