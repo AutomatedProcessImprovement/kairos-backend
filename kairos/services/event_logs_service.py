@@ -85,11 +85,15 @@ def get_log_parameters(event_log_id):
         log = event_logs_db.get_event_log(event_log_id)
     except Exception as e:
         return jsonify(error=str(e)),500
-    return jsonify(columnsDefinition = log.get('columns_definition'),
-                    kpi = log.get('positive_outcome'), 
-                    caseCompletion = log.get('case_completion'),
-                    treatment = log.get('treatment'),
-                    alarmThreshold = log.get('alarm_threshold')),200
+    parameters = {
+        'columnsDefinition': log.get('columns_definition'),
+        'columnsDefinitionReverse': log.get('columns_definition_reverse'), 
+        'kpi': log.get('positive_outcome'), 
+        'caseCompletion': log.get('case_completion'),
+        'treatment': log.get('treatment'),
+        'alarmThreshold': log.get('alarm_threshold')
+    }
+    return jsonify(parameters = parameters),200
     
 
 def define_log_column_types(event_log_id):
@@ -100,27 +104,30 @@ def define_log_column_types(event_log_id):
     
     columns_definition = request.get_json().get('columns_definition')
     case_attributes = request.get_json().get('case_attributes')
-
-    if not columns_definition:
-        return jsonify(error = 'Columns definition cannot be null'),400
     
+    try:
+        columns_definition_reverse = k_utils.validate_columns_definition(columns_definition)
+    except Exception as e:
+        return jsonify(error = str(e)),400
+
     try:
         res = prcore_service.define_columns(event_log_id,columns_definition)
         activities = list(res.get('activities_count').keys())
         outcome_options = res.get('outcome_options')
         treatment_options = res.get('treatment_options')
     except Exception as e:
-        jsonify(error=str(e)),400
+        return jsonify(error=str(e)),400
 
     try:
         event_logs_db.update_event_log( event_log_id,{
                                         "activities": activities,
                                         "case_attributes": case_attributes,
                                         "columns_definition": columns_definition,
+                                        "columns_definition_reverse": columns_definition_reverse,
                                         "outcome_options": outcome_options,
                                         "treatment_options": treatment_options})
     except Exception as e:
-        jsonify(error = str(e)),500
+        return jsonify(error = str(e)),500
 
     return jsonify(message='Column types updated successfully'),200
     
@@ -137,16 +144,17 @@ def define_log_parameters(event_log_id):
     parameters_description = request.get_json().get('parameters_description')
 
     if not all([positive_outcome, treatment, alarm_threshold, case_completion]):
-        return jsonify('All parameters should be defined'),400
+        return jsonify(error='All parameters should be defined'),400
     
     columns_definition = log.get('columns_definition')
-    positive_outcome['value'] = k_utils.validate_timestamp(positive_outcome,columns_definition)
-    treatment['value'] = k_utils.validate_timestamp(treatment,columns_definition)
+    positive_outcome['value'] = k_utils.parse_value(columns_definition.get(positive_outcome['column']) or positive_outcome['column'],positive_outcome['value'])
+    treatment['value'] = k_utils.parse_value(columns_definition.get(treatment['column']),treatment['value'])
 
     project_id = log.get('project_id')
+    prcore_outcome = k_utils.format_positive_outcome(positive_outcome)
 
     try:
-        res = prcore_service.define_parameters(project_id,event_log_id,positive_outcome,treatment)
+        res = prcore_service.define_parameters(project_id,event_log_id,prcore_outcome,treatment)
         project_id = res.get('project',{}).get('id')
     except Exception as e:
         return jsonify(error=str(e)),400
@@ -161,9 +169,15 @@ def define_log_parameters(event_log_id):
                             })
     return jsonify(message='Parameters saved successfully'),200
 
+def get_log_prescriptions(event_log_id):
+    try:
+        prescriptions = cases_db.get_prescriptions(event_log_id)
+        return jsonify(prescriptions = prescriptions),200
+    except Exception as e:
+        return jsonify(error=str(e)),500
+    
 
 # Project
-
 
 def get_project_status(event_log_id):
     try:
