@@ -15,10 +15,16 @@ def delete_cases_by_log_id(event_log_id):
     return db.cases.delete_many({"event_log_id": int(event_log_id)})
 
 def get_case_by_log_id(case_id,event_log_id):
-    return db.cases.find_one({"event_log_id":int(event_log_id),"_id":case_id})
+    c = db.cases.find_one({"event_log_id":int(event_log_id),"_id":case_id})
+    if c == None:
+        raise Exception(f'No case found with ID {case_id} and event log {event_log_id}')
+    return c
 
 def get_case(case_id):
-    return db.cases.find_one({"_id": case_id})
+    c = db.cases.find_one({"_id": case_id})
+    if c == None:
+        raise Exception(f'No case found with ID {case_id}')
+    return c
     
 def save_case(case_id,event_log_id,case_completed,activity,prescriptions_with_output,case_attributes):
     activity['prescriptions'] = prescriptions_with_output
@@ -41,30 +47,30 @@ def update_case(case_id,case_completed,activity,prescriptions_with_output):
         },
         return_document=ReturnDocument.AFTER
     )
+    if not response:
+        raise Exception(f'No case found with ID {case_id}') 
     return response
 
 
-def update_case_prescriptions(case_id,event_id,new_activity):
+def update_case_prescriptions(case_id,new_activities):
     db.cases.update_many(
         {"_id": case_id},
         {
-            "$set": {'activities.$[activity].prescriptions.status': 'DISCARDED'},
-            "arrayFilters": [{'activity.event_id': str(event_id)}]
-        },
-        upsert=False
-    )
-    db.cases.update_one(
-        {"_id": case_id},
-        {
-            "$set": {'activities.$[activity].prescriptions.$[prescription].status': 'ACCEPTED'},
-            "arrayFilters": [{'activity.event_id': str(event_id)},{'prescription.type': 'NEXT_ACTIVITY', 'prescription.output': new_activity}]
+            "$set": {'activities': new_activities},
         },
         upsert=False
     )
 
     
 def update_case_performance(case_id,case_performance):
-    db.cases.find_one_and_update(
+    response = db.cases.find_one_and_update(
         {"_id": case_id},
         {"$set": {'case_performance': case_performance}},
     )
+    if not response:
+        raise Exception(f'No case found with ID {case_id}') 
+    return response
+
+def get_prescriptions(event_log_id):
+    prescriptions = db.cases.find({"event_log_id": int(event_log_id)},{'activities': {'$slice': -1},'case_performance': 1})
+    return list(prescriptions)
