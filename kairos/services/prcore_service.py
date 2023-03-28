@@ -68,7 +68,7 @@ def clear_streamed_data(project_id):
 
 
 def start_stream(project_id):
-    print(f'Starting the stream for project Id: {project_id}')
+    print(f'Starting the stream for project: {project_id}')
     response = requests.get(current_app.config.get('PRCORE_BASE_URL') + f'/project/{project_id}/stream/result', headers=current_app.config.get('PRCORE_HEADERS'), stream=True)
     print(f'got response: {response}')
     client = sseclient.SSEClient(response)
@@ -81,15 +81,7 @@ def start_stream(project_id):
 
         event_data = json.loads(event.data)
         first_event = event_data[0]
-        print(f"Received message: {event.event}")
-        print(f"ID: {event.id}")
-
-        print(f"Data type: {type(event_data)}")
-        print(f"Length: {len(event_data)}")
-        # print(first_event)
+        print(f"Received message: {event.event} {event.id}")
 
         k_utils.record_event(first_event,event.id,project_id)
-
         print("-" * 24)
-
-    print("Done!")

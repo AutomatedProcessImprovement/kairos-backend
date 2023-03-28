@@ -64,7 +64,6 @@ def record_event(event_data,event_id,project_id):
     for column,value in event_data.get('data').items():
         column_type = columns_definition.get(column)
         value = parse_value(column_type,value)
-        print(f'value: {value}, type: {type(value)}')
         
         if column_type == 'CASE_ID':
             case_id = value
@@ -77,7 +76,10 @@ def record_event(event_data,event_id,project_id):
     prescriptions_with_output = [prescriptions[p] for p in prescriptions if prescriptions[p]["output"]]
     case_completed = event_data.get('case_completed')
 
-    old_case = cases_db.get_case(case_id)
+    try:
+        old_case = cases_db.get_case(case_id)
+    except Exception:
+        old_case = None
     
     if not old_case:
         _id = cases_db.save_case(case_id,event_log_id,case_completed,activity,prescriptions_with_output,case_attributes).inserted_id
@@ -97,7 +99,10 @@ def record_event(event_data,event_id,project_id):
     except Exception as e:
         print(f'Failed to calculate case perfrmance: {e}')
 
-    cases_db.update_case_performance(case_id,case_performance)
+    try:
+        cases_db.update_case_performance(case_id,case_performance)
+    except Exception as e:
+        print(f'Failed to update case perfrmance: {e}')
 
     return case_id
 
@@ -191,7 +196,6 @@ def calculate_duration_without_units(start,end):
     end_time = parser.parse(end)
 
     duration = int((end_time - start_time).total_seconds())
-    print(duration)
     if duration >= 604800: 
         unit = 'weeks'
         duration /= 604800
