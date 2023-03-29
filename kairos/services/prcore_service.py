@@ -5,10 +5,11 @@ import sseclient
 from flask import current_app
 
 import kairos.services.utils as k_utils
+from kairos.services.signals import case_updated
 
 def response(res,status=False):
     if res.status_code != 200:
-        print(res)
+        print(f'Error in core: {res}')
         if status:
             return 'NULL'
         raise Exception(res)
@@ -68,7 +69,7 @@ def clear_streamed_data(project_id):
 
 
 def start_stream(project_id):
-    print(f'Starting the stream for project: {project_id}')
+    print(f'Starting the stream for project Id: {project_id}')
     response = requests.get(current_app.config.get('PRCORE_BASE_URL') + f'/project/{project_id}/stream/result', headers=current_app.config.get('PRCORE_HEADERS'), stream=True)
     print(f'got response: {response}')
     client = sseclient.SSEClient(response)
@@ -81,7 +82,12 @@ def start_stream(project_id):
 
         event_data = json.loads(event.data)
         first_event = event_data[0]
-        print(f"Received message: {event.event} {event.id}")
+        print(f"ID: {event.id}")
 
-        k_utils.record_event(first_event,event.id,project_id)
+        case_id = k_utils.record_event(first_event,event.id,project_id)
+        
+        case_updated.send(current_app._get_current_object(),case_id=case_id)
+
         print("-" * 24)
+
+    print("Done!")
