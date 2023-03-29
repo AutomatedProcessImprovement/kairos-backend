@@ -1,5 +1,5 @@
 from zipfile import BadZipFile
-from flask import request, jsonify, stream_with_context, current_app
+from flask import request, jsonify
 
 from datetime import datetime
 import time

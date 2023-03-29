@@ -1,7 +1,7 @@
 from flask import Blueprint
 from flask_cors import CORS
 
-from kairos.services import event_logs_service, cases_service, stream_service
+from kairos.services import event_logs_service, cases_service
 
 event_logs_api = Blueprint('event_logs_api','event_logs_api',url_prefix='/event_logs')
 
@@ -25,7 +25,6 @@ event_logs_api.route('/<event_log_id>/prescriptions',methods=['GET'])(event_logs
 
 # Project
 
-event_logs_api.route('/<event_log_id>/status/stream',methods=['GET'])(stream_service.stream_project_status)
 event_logs_api.route('/<event_log_id>/status',methods=['GET'])(event_logs_service.get_project_status)
 
 event_logs_api.route('/<event_log_id>/simulate/start', methods=['PUT'])(event_logs_service.start_simulation)

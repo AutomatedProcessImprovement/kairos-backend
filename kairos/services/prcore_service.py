@@ -5,7 +5,6 @@ import sseclient
 from flask import current_app
 
 import kairos.services.utils as k_utils
-from kairos.services.signals import case_updated
 
 def response(res,status=False):
     if res.status_code != 200:
@@ -86,8 +85,6 @@ def start_stream(project_id):
 
         case_id = k_utils.record_event(first_event,event.id,project_id)
         
-        case_updated.send(current_app._get_current_object(),case_id=case_id)
-
         print("-" * 24)
 
     print("Done!")
