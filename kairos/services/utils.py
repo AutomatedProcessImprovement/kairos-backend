@@ -3,7 +3,7 @@ from datetime import timedelta
 import copy
 import math
 
-from kairos.models.column_type import Column_type as COLUMN_TYPE
+from kairos.enums.column_type import Column_type as COLUMN_TYPE
 
 import kairos.models.cases_model as cases_db
 import kairos.models.event_logs_model as event_logs_db
