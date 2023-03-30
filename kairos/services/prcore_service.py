@@ -14,10 +14,9 @@ def response(res,status=False):
         raise Exception(res)
     return res.json().get('project',{}).get('status') if status else res.json()
 
-def upload_file(file, delimiter):
-    file.stream.seek(0)
+def upload_file(files, delimiter):
     res = requests.post(current_app.config.get('PRCORE_BASE_URL') + '/event_log', 
-                        files={'file': (file.filename, file.stream, file.content_type)}, 
+                        files=files, 
                         data={"separator": str(delimiter)}, 
                         headers=current_app.config.get('PRCORE_HEADERS'))
     return response(res)

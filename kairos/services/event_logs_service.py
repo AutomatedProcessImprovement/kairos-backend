@@ -26,25 +26,26 @@ def get_log(event_log_id):
     return jsonify(event_log = log),200
     
 def save_log():
+    print(request.files)
     if 'file' not in request.files:
-        return jsonify(error = 'File not found'), 400
+        return jsonify(error = 'Log not found'), 400
     
-    file = request.files['file']
+    file = request.files.get('file')
     if not file:
-        return jsonify(error='File cannot be none'), 400
-    is_allowed_file = False
-    try:
-        is_allowed_file = k_utils.is_allowed_file(file)
-    except BadZipFile as e:
-        return jsonify(error = 'Bad .zip file. Please check to make sure the file is a .zip archive by trying to extract the contents.'),400
-    
-    if not is_allowed_file:
-        return jsonify(error = 'Incorrect file extension.'),400
+        return jsonify(error='Log cannot be none'), 400
+    test_filename = request.files.get('test').filename if request.files.get('test') else None
+
+    files = []
+    for k,f in request.files.items():
+        if not k_utils.is_allowed_file(f):
+            return jsonify(error='Incorrect file extension.'), 400
+        files.append(k_utils.format_file(k,f))
+
     delimiter = request.form.get('delimiter')
     if not delimiter: delimiter = ','
 
     try:
-        res = prcore_service.upload_file(file,delimiter)
+        res = prcore_service.upload_file(files,delimiter)
         event_log_id = res.get('event_log_id')
         columns_header = res.get('columns_header')
         columns_definition = dict(zip(columns_header, res.get('columns_inferred_definition')))
@@ -53,7 +54,7 @@ def save_log():
         return jsonify(error=str(e)), 500
     try:
         saved_id = event_logs_db.save_event_log(file.filename, event_log_id, columns_header, columns_definition,
-                                 columns_data, delimiter, datetime.now()).inserted_id
+                                 columns_data, delimiter, datetime.now(),test_filename).inserted_id
     except Exception as e:
         return jsonify(error = str(e)),500
     
@@ -158,6 +159,7 @@ def define_log_parameters(event_log_id):
     try:
         res = prcore_service.define_parameters(project_id,event_log_id,prcore_outcome,treatment)
         project_id = res.get('project',{}).get('id')
+        result_key = res.get('result_key')
     except Exception as e:
         return jsonify(error=str(e)),400
     
@@ -167,7 +169,8 @@ def define_log_parameters(event_log_id):
                             "treatment": treatment,
                             "alarm_threshold": alarm_threshold,
                             "case_completion": case_completion,
-                            "parameters_description": parameters_description
+                            "parameters_description": parameters_description,
+                            'result_key': result_key
                             })
     return jsonify(message='Parameters saved successfully'),200
 

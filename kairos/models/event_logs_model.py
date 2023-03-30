@@ -20,10 +20,11 @@ def get_event_log_by_project_id(project_id):
         raise Exception(f'No log found with project ID {project_id}')
     return log
 
-def save_event_log(filename, event_log_id, columns_header,columns_definition,columns_data,delimiter,datetime):
+def save_event_log(filename, event_log_id, columns_header,columns_definition,columns_data,delimiter,datetime, test_filename):
     event_log = {
         '_id':event_log_id,
         'filename':filename,
+        'test_filename': test_filename,
         'columns_header':columns_header,
         'columns_definition': columns_definition,
         'columns_data':columns_data,

@@ -16,10 +16,18 @@ EVALUATION_METHODS = {
             }
 
 def is_allowed_file(file):
-    extension = file.filename.rsplit('.', 1)[1].lower()
-    result = extension in ['xes','csv','zip']
-    return result
+    try:
+        extension = file.filename.rsplit('.', 1)[1].lower()
+    except Exception as e:
+        print(str(e))
+        return False
+    return extension in ['xes','csv','zip']
 
+def format_file(name,file):
+    file.stream.seek(0)
+    formatted = {name: (file.filename, file.stream, file.content_type)}
+    return formatted
+    
 def validate_columns_definition(columns_definition):
     if not columns_definition:
         raise Exception('Columns definition cannot be null.')
