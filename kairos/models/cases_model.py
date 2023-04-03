@@ -26,19 +26,17 @@ def get_case(case_id):
         raise Exception(f'No case found with ID {case_id}')
     return c
     
-def save_case(case_id,event_log_id,case_completed,activity,prescriptions_with_output,case_attributes):
-    activity['prescriptions'] = prescriptions_with_output
+def save_case(case_id,event_log_id,case_completed,activities,case_attributes):
     new_case = {
         '_id':case_id,
         'event_log_id':event_log_id,
         'case_completed':case_completed,
-        'activities':[activity],
+        'activities':activities,
         'case_attributes':case_attributes,
         }
     return db.cases.insert_one(new_case)
 
-def update_case(case_id,case_completed,activity,prescriptions_with_output):
-    activity['prescriptions'] = prescriptions_with_output
+def update_case(case_id,case_completed,activity):
     response = db.cases.find_one_and_update(
         {"_id": case_id},
         {
