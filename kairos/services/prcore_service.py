@@ -14,9 +14,10 @@ def response(res,status=False):
         raise Exception(res)
     return res.json().get('project',{}).get('status') if status else res.json()
 
-def upload_file(files, delimiter):
+def upload_file(logs, delimiter):
+    print('sending to core')
     res = requests.post(current_app.config.get('PRCORE_BASE_URL') + '/event_log', 
-                        files=files, 
+                        files=logs, 
                         data={"separator": str(delimiter)}, 
                         headers=current_app.config.get('PRCORE_HEADERS'))
     return response(res)
@@ -87,3 +88,10 @@ def start_stream(project_id):
         print("-" * 24)
 
     print("Done!")
+
+def get_static_results(project_id,result_key):
+    res = requests.get(current_app.config.get('PRCORE_BASE_URL') + f'/project/{project_id}/result/{result_key}', headers=current_app.config.get('PRCORE_HEADERS'))
+    res_json = response(res)
+    message = res_json.get('message')
+    k_utils.record_results(project_id,res_json)
+    return message

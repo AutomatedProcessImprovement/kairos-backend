@@ -26,7 +26,6 @@ def get_log(event_log_id):
     return jsonify(event_log = log),200
     
 def save_log():
-    print(request.files)
     if 'file' not in request.files:
         return jsonify(error = 'Log not found'), 400
     
@@ -34,7 +33,6 @@ def save_log():
     if not file:
         return jsonify(error='Log cannot be none'), 400
     test_filename = request.files.get('test').filename if request.files.get('test') else None
-
     files = []
     for k,f in request.files.items():
         if not k_utils.is_allowed_file(f):
@@ -43,7 +41,6 @@ def save_log():
 
     delimiter = request.form.get('delimiter')
     if not delimiter: delimiter = ','
-
     try:
         res = prcore_service.upload_file(files,delimiter)
         event_log_id = res.get('event_log_id')
@@ -52,8 +49,9 @@ def save_log():
         columns_data = res.get('columns_data')
     except Exception as e:
         return jsonify(error=str(e)), 500
+    
     try:
-        saved_id = event_logs_db.save_event_log(file.filename, event_log_id, columns_header, columns_definition,
+        saved_id = event_logs_db.save_event_log(event_log_id, file.filename, columns_header, columns_definition,
                                  columns_data, delimiter, datetime.now(),test_filename).inserted_id
     except Exception as e:
         return jsonify(error = str(e)),500
@@ -160,9 +158,9 @@ def define_log_parameters(event_log_id):
         res = prcore_service.define_parameters(project_id,event_log_id,prcore_outcome,treatment)
         project_id = res.get('project',{}).get('id')
         result_key = res.get('result_key')
+        print(f'result key: {result_key}')
     except Exception as e:
         return jsonify(error=str(e)),400
-    
     event_logs_db.update_event_log(event_log_id,{
                             "project_id": project_id,
                             "positive_outcome": positive_outcome,
@@ -207,7 +205,7 @@ def start_simulation(event_log_id):
     
     project_id = log.get('project_id')
     status = prcore_service.get_project_status(project_id)
-    print(PROJECT_STATUS.TRAINED)
+
     if status != PROJECT_STATUS.TRAINED:
         return jsonify(error=f'Cannot start the simulation, project status: {status}'), 400
     
@@ -229,6 +227,35 @@ def start_simulation(event_log_id):
         return jsonify(error="Something went wrong. Stopping simulation..."),500
     
     return jsonify(message = res),200
+
+def get_static_results(event_log_id):
+    try: 
+        log = event_logs_db.get_event_log(event_log_id)
+    except Exception as e:
+        return jsonify(error = str(e)), 400
+    
+    project_id = log.get('project_id')
+    result_key = log.get('result_key')
+    got_results = log.get('got_results')
+
+    if got_results:
+        return jsonify(error = f"The results for log {event_log_id} have already been received."), 400
+
+    if not result_key:
+        return jsonify(error = f"Log {event_log_id} does not have a result key."), 400
+    
+    status = prcore_service.get_project_status(project_id)
+
+    if status != PROJECT_STATUS.TRAINED:
+        return jsonify(error=f'Cannot get the results, project status: {status}'), 400
+    
+    res = prcore_service.get_static_results(project_id,result_key)
+    # try:
+    # except Exception as e:
+    #     return jsonify(error=str(e)),500
+    
+    return jsonify(message = res),200
+
 
 def stop_simulation(event_log_id):
     try: 
