@@ -138,6 +138,9 @@ def define_log_parameters(event_log_id):
     except Exception as e:
         return jsonify(error = str(e)), 400
     
+    if log.get('result_key'):
+        return jsonify(error = 'Cannot redefine parameters for logs with test dataset.'), 400
+    
     positive_outcome = request.get_json().get('positive_outcome')
     treatment = request.get_json().get('treatment')
     alarm_threshold = request.get_json().get('alarm_threshold')
