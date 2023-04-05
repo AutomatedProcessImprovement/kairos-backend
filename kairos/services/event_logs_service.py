@@ -157,11 +157,13 @@ def define_log_parameters(event_log_id):
     project_id = log.get('project_id')
     prcore_outcome = k_utils.format_positive_outcome(positive_outcome)
 
+    if project_id:
+        cases_db.delete_cases_by_log_id(event_log_id)
+
     try:
         res = prcore_service.define_parameters(project_id,event_log_id,prcore_outcome,treatment)
         project_id = res.get('project',{}).get('id')
         result_key = res.get('result_key')
-        print(f'result key: {result_key}')
     except Exception as e:
         return jsonify(error=str(e)),400
     event_logs_db.update_event_log(event_log_id,{
