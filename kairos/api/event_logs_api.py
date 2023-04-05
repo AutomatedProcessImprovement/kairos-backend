@@ -21,6 +21,8 @@ event_logs_api.route('/<event_log_id>/column_types', methods=['PUT'])(event_logs
 event_logs_api.route('/<event_log_id>/parameters',methods=['GET'])(event_logs_service.get_log_parameters)
 event_logs_api.route('/<event_log_id>/parameters',methods=['POST'])(event_logs_service.define_log_parameters)
 
+event_logs_api.route('/<event_log_id>/prescriptions',methods=['GET'])(event_logs_service.get_log_prescriptions)
+
 # Project
 
 event_logs_api.route('/<event_log_id>/status',methods=['GET'])(event_logs_service.get_project_status)
@@ -29,3 +31,5 @@ event_logs_api.route('/<event_log_id>/simulate/start', methods=['PUT'])(event_lo
 event_logs_api.route('/<event_log_id>/simulate/stop', methods=['PUT'])(event_logs_service.stop_simulation)
 
 event_logs_api.route('/<event_log_id>/simulate/clear', methods=['PUT'])(event_logs_service.clear_stream)
+
+event_logs_api.route('/<event_log_id>/results', methods=['GET'])(event_logs_service.get_static_results)
