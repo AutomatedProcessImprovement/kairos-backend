@@ -15,7 +15,6 @@ def response(res,status=False):
     return res.json().get('project',{}).get('status') if status else res.json()
 
 def upload_file(logs, delimiter):
-    print('sending to core')
     res = requests.post(current_app.config.get('PRCORE_BASE_URL') + '/event_log', 
                         files=logs, 
                         data={"separator": str(delimiter)}, 

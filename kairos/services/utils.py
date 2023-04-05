@@ -83,6 +83,8 @@ def record_event(event_data,event_id,project_id):
     prescriptions = event_data.get("prescriptions")
     prescriptions_with_output = [prescriptions[p] for p in prescriptions if prescriptions[p]["output"]]
     case_completed = event_data.get('case_completed')
+    if case_completed:
+        prescriptions_with_output = []
     activity['prescriptions'] = prescriptions_with_output
 
     try:
