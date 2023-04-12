@@ -31,3 +31,5 @@ event_logs_api.route('/<event_log_id>/simulate/start', methods=['PUT'])(event_lo
 event_logs_api.route('/<event_log_id>/simulate/stop', methods=['PUT'])(event_logs_service.stop_simulation)
 
 event_logs_api.route('/<event_log_id>/simulate/clear', methods=['PUT'])(event_logs_service.clear_stream)
+
+event_logs_api.route('/<event_log_id>/results', methods=['GET'])(event_logs_service.get_static_results)

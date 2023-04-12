@@ -8,16 +8,15 @@ import kairos.services.utils as k_utils
 
 def response(res,status=False):
     if res.status_code != 200:
-        print(res)
+        print(f'Error in core: {res}')
         if status:
             return 'NULL'
         raise Exception(res)
     return res.json().get('project',{}).get('status') if status else res.json()
 
-def upload_file(file, delimiter):
-    file.stream.seek(0)
+def upload_file(logs, delimiter):
     res = requests.post(current_app.config.get('PRCORE_BASE_URL') + '/event_log', 
-                        files={'file': (file.filename, file.stream, file.content_type)}, 
+                        files=logs, 
                         data={"separator": str(delimiter)}, 
                         headers=current_app.config.get('PRCORE_HEADERS'))
     return response(res)
@@ -81,8 +80,16 @@ def start_stream(project_id):
 
         event_data = json.loads(event.data)
         first_event = event_data[0]
-        print(f"Received message: {event.event} {event.id}")
+        print(f"ID: {event.id}")
 
-        k_utils.record_event(first_event,event.id,project_id)
+        case_id = k_utils.record_event(first_event,event.id,project_id)
+        
         print("-" * 24)
 
+
+def get_static_results(project_id,result_key):
+    res = requests.get(current_app.config.get('PRCORE_BASE_URL') + f'/project/{project_id}/result/{result_key}', headers=current_app.config.get('PRCORE_HEADERS'))
+    res_json = response(res)
+    message = res_json.get('message')
+    k_utils.record_results(project_id,res_json)
+    return message

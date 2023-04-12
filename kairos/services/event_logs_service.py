@@ -2,10 +2,12 @@ from zipfile import BadZipFile
 from flask import request, jsonify
 
 from datetime import datetime
+import time
+import json
 
 import kairos.models.event_logs_model as event_logs_db
 import kairos.models.cases_model as cases_db
-from kairos.models.project_status import Status as PROJECT_STATUS
+from kairos.enums.project_status import Status as PROJECT_STATUS
 import kairos.services.prcore_service as prcore_service
 import kairos.services.utils as k_utils
 
@@ -25,33 +27,32 @@ def get_log(event_log_id):
     
 def save_log():
     if 'file' not in request.files:
-        return jsonify(error = 'File not found'), 400
+        return jsonify(error = 'Log not found'), 400
     
-    file = request.files['file']
+    file = request.files.get('file')
     if not file:
-        return jsonify(error='File cannot be none'), 400
-    is_allowed_file = False
-    try:
-        is_allowed_file = k_utils.is_allowed_file(file)
-    except BadZipFile as e:
-        return jsonify(error = 'Bad .zip file. Please check to make sure the file is a .zip archive by trying to extract the contents.'),400
-    
-    if not is_allowed_file:
-        return jsonify(error = 'Incorrect file extension.'),400
+        return jsonify(error='Log cannot be none'), 400
+    test_filename = request.files.get('test').filename if request.files.get('test') else None
+    files = []
+    for k,f in request.files.items():
+        if not k_utils.is_allowed_file(f):
+            return jsonify(error='Incorrect file extension.'), 400
+        files.append(k_utils.format_file(k,f))
+
     delimiter = request.form.get('delimiter')
     if not delimiter: delimiter = ','
-
     try:
-        res = prcore_service.upload_file(file,delimiter)
+        res = prcore_service.upload_file(files,delimiter)
         event_log_id = res.get('event_log_id')
         columns_header = res.get('columns_header')
         columns_definition = dict(zip(columns_header, res.get('columns_inferred_definition')))
         columns_data = res.get('columns_data')
     except Exception as e:
         return jsonify(error=str(e)), 500
+    
     try:
-        saved_id = event_logs_db.save_event_log(file.filename, event_log_id, columns_header, columns_definition,
-                                 columns_data, delimiter, datetime.now()).inserted_id
+        saved_id = event_logs_db.save_event_log(event_log_id, file.filename, columns_header, columns_definition,
+                                 columns_data, delimiter, datetime.now(),test_filename).inserted_id
     except Exception as e:
         return jsonify(error = str(e)),500
     
@@ -137,6 +138,9 @@ def define_log_parameters(event_log_id):
     except Exception as e:
         return jsonify(error = str(e)), 400
     
+    if log.get('result_key'):
+        return jsonify(error = 'Cannot redefine parameters for logs with test dataset.'), 400
+    
     positive_outcome = request.get_json().get('positive_outcome')
     treatment = request.get_json().get('treatment')
     alarm_threshold = request.get_json().get('alarm_threshold')
@@ -153,19 +157,23 @@ def define_log_parameters(event_log_id):
     project_id = log.get('project_id')
     prcore_outcome = k_utils.format_positive_outcome(positive_outcome)
 
+    if project_id:
+        cases_db.delete_cases_by_log_id(event_log_id)
+
     try:
         res = prcore_service.define_parameters(project_id,event_log_id,prcore_outcome,treatment)
         project_id = res.get('project',{}).get('id')
+        result_key = res.get('result_key')
     except Exception as e:
         return jsonify(error=str(e)),400
-    
     event_logs_db.update_event_log(event_log_id,{
                             "project_id": project_id,
                             "positive_outcome": positive_outcome,
                             "treatment": treatment,
                             "alarm_threshold": alarm_threshold,
                             "case_completion": case_completion,
-                            "parameters_description": parameters_description
+                            "parameters_description": parameters_description,
+                            'result_key': result_key
                             })
     return jsonify(message='Parameters saved successfully'),200
 
@@ -202,7 +210,7 @@ def start_simulation(event_log_id):
     
     project_id = log.get('project_id')
     status = prcore_service.get_project_status(project_id)
-    print(PROJECT_STATUS.TRAINED)
+
     if status != PROJECT_STATUS.TRAINED:
         return jsonify(error=f'Cannot start the simulation, project status: {status}'), 400
     
@@ -224,6 +232,35 @@ def start_simulation(event_log_id):
         return jsonify(error="Something went wrong. Stopping simulation..."),500
     
     return jsonify(message = res),200
+
+def get_static_results(event_log_id):
+    try: 
+        log = event_logs_db.get_event_log(event_log_id)
+    except Exception as e:
+        return jsonify(error = str(e)), 400
+    
+    project_id = log.get('project_id')
+    result_key = log.get('result_key')
+    got_results = log.get('got_results')
+
+    if got_results:
+        return jsonify(error = f"The results for log {event_log_id} have already been received."), 400
+
+    if not result_key:
+        return jsonify(error = f"Log {event_log_id} does not have a result key."), 400
+    
+    status = prcore_service.get_project_status(project_id)
+
+    if status != PROJECT_STATUS.TRAINED:
+        return jsonify(error=f'Cannot get the results, project status: {status}'), 400
+    
+    res = prcore_service.get_static_results(project_id,result_key)
+    # try:
+    # except Exception as e:
+    #     return jsonify(error=str(e)),500
+    
+    return jsonify(message = res),200
+
 
 def stop_simulation(event_log_id):
     try: 
