@@ -1,7 +1,11 @@
 from dateutil import parser
 from datetime import timedelta
+from pymongo.errors import DuplicateKeyError
+
 import copy
 import math
+import random
+import string
 
 from kairos.enums.column_type import Column_type as COLUMN_TYPE
 
@@ -207,7 +211,7 @@ def calculate_duration_without_units(start,end):
     end_time = parser.parse(end)
 
     duration = int((end_time - start_time).total_seconds())
-    if duration >= 604800: 
+    if duration >= 604800 and (duration % 604800) < 86400:
         unit = 'weeks'
         duration /= 604800
     elif duration >= 86400: 
@@ -220,7 +224,7 @@ def calculate_duration_without_units(start,end):
          unit = 'minutes'
          duration /= 60
     else: unit = 'seconds'
-    duration = round(duration)
+    duration = math.floor(duration)
     return duration,unit
 
 def parse_value(column_type,value):
@@ -256,6 +260,7 @@ def record_results(project_id,result):
     columns_definition = log.get("columns_definition")
     columns_definition_reverse = log.get('columns_definition_reverse')
     case_attributes_definition = log.get('case_attributes')
+    suffix = generate_suffix()
 
     for case_id, case_body in result.get('cases',{}).items():
         events = case_body.get('events',[])
@@ -285,18 +290,28 @@ def record_results(project_id,result):
             activities.append(activity)
         case_completed = False
 
-        _id = cases_db.save_case(case_id,event_log_id,case_completed,activities,case_attributes).inserted_id
+        while True:
+            try:
+                _id = cases_db.save_case(suffix + str(case_id),event_log_id,case_completed,activities,case_attributes).inserted_id
+                break
+            except DuplicateKeyError:
+                suffix = generate_suffix()
+        
         print(f'saved case: {_id}')
 
         case_performance = {}
         try:
-            case_performance = calculate_case_performance(case_id,log.get('positive_outcome'),columns_definition, columns_definition_reverse)
+            case_performance = calculate_case_performance(_id,log.get('positive_outcome'),columns_definition, columns_definition_reverse)
         except Exception as e:
             print(f'Failed to calculate case perfrmance: {e}')
 
         try:
-            cases_db.update_case_performance(case_id,case_performance)
+            cases_db.update_case_performance(_id,case_performance)
         except Exception as e:
             print(f'Failed to update case perfrmance: {e}')
         
     event_logs_db.update_event_log(event_log_id,{'got_results': True})  
+
+def generate_suffix():
+    rand = ''.join(random.choices(string.ascii_letters + string.digits, k=8))
+    return rand + '-'
