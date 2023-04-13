@@ -98,26 +98,26 @@ def record_event(event_data,event_id,project_id):
     
     if not old_case:
         _id = cases_db.save_case(case_id,event_log_id,case_completed,[activity],case_attributes).inserted_id
-        print(f'saved case: {_id}')
+        # print(f'saved case: {_id}')
     else: 
         try:
             update_case_prescriptions(old_case,activity,columns_definition_reverse.get(COLUMN_TYPE.ACTIVITY))
         except Exception as e:
-            print(f'Failed to update case prescriptions: {e}')
+            print(f'Failed to update case {case_id} prescriptions: {e}')
 
         cases_db.update_case(case_id,case_completed,activity)
-        print(f'updated case: {case_id}')
+        # print(f'updated case: {case_id}')
 
     case_performance = {}
     try:
         case_performance = calculate_case_performance(case_id,log.get('positive_outcome'),columns_definition, columns_definition_reverse)
     except Exception as e:
-        print(f'Failed to calculate case perfrmance: {e}')
+        print(f'Failed to calculate case {case_id} perfrmance: {e}')
 
     try:
         cases_db.update_case_performance(case_id,case_performance)
     except Exception as e:
-        print(f'Failed to update case perfrmance: {e}')
+        print(f'Failed to update case {case_id} perfrmance: {e}')
 
     return case_id
 
@@ -297,18 +297,18 @@ def record_results(project_id,result):
             except DuplicateKeyError:
                 suffix = generate_suffix()
         
-        print(f'saved case: {_id}')
+        # print(f'saved case: {_id}')
 
         case_performance = {}
         try:
             case_performance = calculate_case_performance(_id,log.get('positive_outcome'),columns_definition, columns_definition_reverse)
         except Exception as e:
-            print(f'Failed to calculate case perfrmance: {e}')
+            print(f'Failed to calculate case {case_id} perfrmance: {e}')
 
         try:
             cases_db.update_case_performance(_id,case_performance)
         except Exception as e:
-            print(f'Failed to update case perfrmance: {e}')
+            print(f'Failed to update case {case_id} perfrmance: {e}')
         
     event_logs_db.update_event_log(event_log_id,{'got_results': True})  
 
