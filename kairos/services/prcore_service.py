@@ -6,12 +6,14 @@ from flask import current_app
 
 import kairos.services.utils as k_utils
 
-def response(res,status=False):
+def response(res,status=False,json=True):
     if res.status_code != 200:
         print(f'Error in core: {res}')
         if status:
             return 'NULL'
         raise Exception(res)
+    if not json:
+        return res
     return res.json().get('project',{}).get('status') if status else res.json()
 
 def upload_file(logs, delimiter):
@@ -68,9 +70,9 @@ def clear_streamed_data(project_id):
 
 def start_stream(project_id):
     print(f'Starting the stream for project: {project_id}')
-    response = requests.get(current_app.config.get('PRCORE_BASE_URL') + f'/project/{project_id}/stream/result', headers=current_app.config.get('PRCORE_HEADERS'), stream=True)
-    print(f'got response: {response}')
-    client = sseclient.SSEClient(response)
+    res = requests.get(current_app.config.get('PRCORE_BASE_URL') + f'/project/{project_id}/stream/result', headers=current_app.config.get('PRCORE_HEADERS'), stream=True)
+    print(f'got response: {response(res,json=False)}')
+    client = sseclient.SSEClient(res)
 
     print("Waiting for events...")
 
@@ -80,11 +82,11 @@ def start_stream(project_id):
 
         event_data = json.loads(event.data)
         first_event = event_data[0]
-        print(f"ID: {event.id}")
+        # print(f"ID: {event.id}")
 
         case_id = k_utils.record_event(first_event,event.id,project_id)
         
-        print("-" * 24)
+        # print("-" * 24)
 
 
 def get_static_results(project_id,result_key):
