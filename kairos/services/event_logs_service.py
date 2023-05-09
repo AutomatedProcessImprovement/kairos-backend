@@ -139,7 +139,7 @@ def define_log_parameters(event_log_id):
         return jsonify(error = str(e)), 400
     
     if log.get('result_key'):
-        return jsonify(error = 'Cannot redefine parameters for logs with test dataset.'), 400
+        return jsonify(error = 'Cannot redefine parameters for logs with test dataset'), 400
     
     positive_outcome = request.get_json().get('positive_outcome')
     treatment = request.get_json().get('treatment')
@@ -244,7 +244,7 @@ def get_static_results(event_log_id):
     got_results = log.get('got_results')
 
     if got_results:
-        return jsonify(error = f"The results for log {event_log_id} have already been received."), 400
+        return jsonify(error = f"The results for log {event_log_id} have already been received"), 400
 
     if not result_key:
         return jsonify(error = f"Log {event_log_id} does not have a result key."), 400
@@ -300,4 +300,4 @@ def clear_stream(event_log_id):
     except Exception as e:
         return jsonify(error=str(e)),500
     
-    return jsonify(message = 'Successfully cleared streamed data.'),200
+    return jsonify(message = 'Successfully cleared streamed data'),200
