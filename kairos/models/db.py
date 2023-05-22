@@ -1,7 +1,5 @@
 from flask import current_app, g
-# from werkzeug.local import LocalProxy
-from flask_pymongo import PyMongo
-
+from pymongo import MongoClient
 
 def get_db():
     """
@@ -11,6 +9,6 @@ def get_db():
 
     if db is None:
 
-        db = g._database = PyMongo(current_app).cx['flask_db']
+        db = g._database = MongoClient(current_app.config.get('MONGO_URI')).flask_db
        
     return db
