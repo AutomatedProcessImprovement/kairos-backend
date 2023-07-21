@@ -9,6 +9,8 @@ CORS(event_logs_api)
 
 event_logs_api.route('/<event_log_id>/cases',methods=['GET'])(cases_service.get_cases_by_log)
 
+event_logs_api.route('/<event_log_id>/cases/<case_completion>',methods=['GET'])(cases_service.get_cases_by_log_and_completion)
+
 event_logs_api.route('', methods=['GET'])(event_logs_service.get_logs)
 event_logs_api.route('', methods=['POST'])(event_logs_service.save_log)
 
