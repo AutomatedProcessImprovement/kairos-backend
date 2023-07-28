@@ -163,7 +163,7 @@ def calculate_case_performance(case_id,positive_outcome, columns_definition, col
         actual_value = my_case.get('case_attributes').get(column) if not last_activity.get(column) else last_activity.get(column)
     
     if actual_value == None:
-        print(f'something went wrong, actual value: {actual_value},column: {column}, outcome: {outcome}')
+        print(f'something went wrong, actual value: {actual_value},column: {column}')
         raise Exception('something went wrong while calculating case performance.')
 
     value = parse_value(column_type, value)
