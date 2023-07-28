@@ -11,6 +11,9 @@ def get_cases():
 def get_cases_by_log_id(event_log_id):
     return list(db.cases.find({"event_log_id": int(event_log_id)}))
 
+def get_cases_by_log_id_and_completion(event_log_id, case_completed):
+    return list(db.cases.find({"event_log_id": int(event_log_id), "case_completed": case_completed}))
+
 def delete_cases_by_log_id(event_log_id):
     return db.cases.delete_many({"event_log_id": int(event_log_id)})
 
@@ -58,8 +61,7 @@ def update_case_prescriptions(case_id,new_activities):
         },
         upsert=False
     )
-
-    
+ 
 def update_case_performance(case_id,case_performance):
     response = db.cases.find_one_and_update(
         {"_id": case_id},
