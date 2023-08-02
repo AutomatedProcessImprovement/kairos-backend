@@ -33,7 +33,7 @@ def save_log():
     
     file = request.files.get('file')
     if not file:
-        current_app.logger.error(f'{request.method} {request.path} 400 - log cannot be null')
+        current_app.logger.error(f'{request.method} {request.path} 400 - log cannot be none')
         return jsonify(error='Log cannot be none'), 400
     test_filename = request.files.get('test').filename if request.files.get('test') else None
     files = []
@@ -342,5 +342,5 @@ def clear_stream(event_log_id):
         current_app.logger.error(f'{request.method} {request.path} 400 - {e}')
         return jsonify(error=str(e)),500
     
-    current_app.logger.error(f'{request.method} {request.path} 200')
+    current_app.logger.info(f'{request.method} {request.path} 200')
     return jsonify(message = 'Successfully cleared streamed data'),200
