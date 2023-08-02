@@ -19,6 +19,16 @@ def get_cases_by_log(event_log_id):
     except Exception as e:
         current_app.logger.error(f'{request.method} {request.path} 400 - {e}')
         return jsonify(error=str(e)),400
+    
+def get_cases_by_log_and_completion(event_log_id, case_completion):
+    try:
+        case_completion = True if case_completion == "completed" else False
+        c = cases_db.get_cases_by_log_id_and_completion(event_log_id, case_completion)
+        current_app.logger.info(f'{request.method} {request.path} 200')
+        return jsonify(cases = c),200
+    except Exception as e:
+        current_app.logger.error(f'{request.method} {request.path} 400 - {e}')
+        return jsonify(error=str(e)),400
 
 def get_case(case_id):
     try:
