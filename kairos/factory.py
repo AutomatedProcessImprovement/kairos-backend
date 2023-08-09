@@ -26,7 +26,7 @@ dictConfig(
                 "formatter": "default",
             }
         },
-        "root": {"level": "DEBUG", "handlers": ["console"]},
+        "root": {"level": "INFO", "handlers": ["console"]},
     }
 )
 

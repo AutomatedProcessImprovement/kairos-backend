@@ -101,6 +101,7 @@ def get_log_parameters(event_log_id):
     parameters = {
         'columnsDefinition': log.get('columns_definition'),
         'columnsDefinitionReverse': log.get('columns_definition_reverse'), 
+        'costUnits': log.get('cost_units'), 
         'kpi': log.get('positive_outcome'), 
         'caseCompletion': log.get('case_completion'),
         'treatment': log.get('treatment'),
@@ -119,9 +120,10 @@ def define_log_column_types(event_log_id):
     
     columns_definition = request.get_json().get('columns_definition')
     case_attributes = request.get_json().get('case_attributes')
+    cost_units = request.get_json().get('cost_units')
     
     try:
-        columns_definition_reverse = k_utils.validate_columns_definition(columns_definition)
+        columns_definition_reverse = k_utils.validate_and_reverse_columns_definition(columns_definition)
     except Exception as e:
         current_app.logger.error(f'{request.method} {request.path} 400 - {e}')
         return jsonify(error = str(e)),400
@@ -141,6 +143,7 @@ def define_log_column_types(event_log_id):
                                         "case_attributes": case_attributes,
                                         "columns_definition": columns_definition,
                                         "columns_definition_reverse": columns_definition_reverse,
+                                        "cost_units": cost_units,
                                         "outcome_options": outcome_options,
                                         "treatment_options": treatment_options})
     except Exception as e:

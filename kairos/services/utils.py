@@ -32,7 +32,7 @@ def format_file(name,file):
     formatted = (name, (file.filename, file.stream, file.content_type))
     return formatted
     
-def validate_columns_definition(columns_definition):
+def validate_and_reverse_columns_definition(columns_definition):
     if not columns_definition:
         raise Exception('Columns definition cannot be null.')
     
