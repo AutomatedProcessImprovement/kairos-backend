@@ -1,7 +1,7 @@
 # Kairos Interface Web Server
 
-![build](https://github.com/VisualPM/backend-flask/actions/workflows/python-app.yml/badge.svg) 
-![production_build](https://github.com/VisualPM/backend-flask/actions/workflows/docker-image.yml/badge.svg)
+![build](https://github.com/AutomatedProcessImprovement/kairos-backend/actions/workflows/python-app.yml/badge.svg) 
+![production_build](https://github.com/AutomatedProcessImprovement/kairos-backend/actions/workflows/docker-image.yml/badge.svg)
 
 ## Start the web server locally (via locally installed Python)
 > Please, note that you need to have `Python` and `MongoDB` installed in order to follow the following steps. The installation instructions can be found here: https://wiki.python.org/moin/BeginnersGuide/Download and https://www.mongodb.com/docs/manual/installation/ respectively.
