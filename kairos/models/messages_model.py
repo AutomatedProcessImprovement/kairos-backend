@@ -11,3 +11,6 @@ def save_message(content):
 
 def count_messages():
     return db.messages.count_documents({})
+
+def delete_messages():
+    return db.messages.deleteMany({})
