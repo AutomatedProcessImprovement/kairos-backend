@@ -6,11 +6,14 @@ import copy
 import math
 import random
 import string
+import pprint
 
 from kairos.enums.column_type import Column_type as COLUMN_TYPE
 
 import kairos.models.cases_model as cases_db
 import kairos.models.event_logs_model as event_logs_db
+
+import kairos.services.openai_service as openai_service
 
 EVALUATION_METHODS = {
             'EQUAL':lambda x,y: x == y,'NOT_EQUAL':lambda x,y: x!=y,'CONTAINS': lambda x,y: y in x,'NOT_CONTAINS':lambda x,y: y not in x,
@@ -63,7 +66,7 @@ def record_event(event_data,event_id,project_id):
         log = event_logs_db.get_event_log_by_project_id(project_id)
     except Exception as e:
         print(str(e))
-        return 
+        return
     event_log_id = log.get('_id')
     columns_definition = log.get("columns_definition")
     columns_definition_reverse = log.get('columns_definition_reverse')
@@ -85,7 +88,16 @@ def record_event(event_data,event_id,project_id):
             activity[column] = value
 
     prescriptions = event_data.get("prescriptions")
-    prescriptions_with_output = [prescriptions[p] for p in prescriptions if prescriptions[p]["output"]]
+    prescriptions_with_output = []
+
+    for p in prescriptions:
+        if not prescriptions[p].get('output'): continue
+        description = openai_service.explain_prescription(prescriptions[p])
+        if not description: continue
+        prescriptions[p]['description'] = description
+        prescriptions_with_output.append(prescriptions[p])
+        pprint.pprint(prescriptions[p])
+
     case_completed = event_data.get('case_completed')
     if case_completed:
         prescriptions_with_output = []
@@ -98,7 +110,6 @@ def record_event(event_data,event_id,project_id):
     
     if not old_case:
         _id = cases_db.save_case(case_id,event_log_id,case_completed,[activity],case_attributes).inserted_id
-        # print(f'saved case: {_id}')
     else: 
         try:
             update_case_prescriptions(old_case,activity,columns_definition_reverse.get(COLUMN_TYPE.ACTIVITY))
@@ -106,7 +117,6 @@ def record_event(event_data,event_id,project_id):
             print(f'Failed to update case {case_id} prescriptions: {e}')
 
         cases_db.update_case(case_id,case_completed,activity)
-        # print(f'updated case: {case_id}')
 
     case_performance = {}
     try:
@@ -297,8 +307,6 @@ def record_results(project_id,result):
             except DuplicateKeyError:
                 suffix = generate_suffix()
         
-        # print(f'saved case: {_id}')
-
         case_performance = {}
         try:
             case_performance = calculate_case_performance(_id,log.get('positive_outcome'),columns_definition, columns_definition_reverse)
