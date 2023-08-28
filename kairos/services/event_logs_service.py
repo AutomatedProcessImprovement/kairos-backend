@@ -135,7 +135,7 @@ def define_log_column_types(event_log_id):
         treatment_options = res.get('treatment_options')
     except Exception as e:
         current_app.logger.error(f'{request.method} {request.path} 400 - {e}')
-        return jsonify(error=str(e)),400
+        return jsonify(error=str(e),prcore=True),400
 
     try:
         event_logs_db.update_event_log( event_log_id,{
