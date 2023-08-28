@@ -1,6 +1,7 @@
 from dateutil import parser
 from datetime import timedelta
 from pymongo.errors import DuplicateKeyError
+from collections import Counter
 
 import copy
 import math
@@ -36,6 +37,17 @@ def validate_and_reverse_columns_definition(columns_definition):
     if not columns_definition:
         raise Exception('Columns definition cannot be null.')
     
+    rev_dict = {}
+ 
+    for key, value in columns_definition.items():
+        rev_dict.setdefault(value, set()).add(key)
+        
+    count_column_types = Counter(columns_definition.values())
+    duplicates = [k for k, v in count_column_types.items() if v > 1] 
+
+    if COLUMN_TYPE.ACTIVITY in duplicates:
+        raise Exception('The log can include only one ACTIVITY column.')
+       
     columns_definition_reverse = {v: k for k, v in columns_definition.items() if v in [COLUMN_TYPE.CASE_ID,COLUMN_TYPE.ACTIVITY,COLUMN_TYPE.TIMESTAMP,COLUMN_TYPE.START_TIMESTAMP,COLUMN_TYPE.END_TIMESTAMP,COLUMN_TYPE.RESOURCE]}
     
     if not columns_definition_reverse.get(COLUMN_TYPE.ACTIVITY):
