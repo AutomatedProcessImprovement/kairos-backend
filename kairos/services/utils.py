@@ -50,6 +50,9 @@ def validate_and_reverse_columns_definition(columns_definition):
        
     columns_definition_reverse = {v: k for k, v in columns_definition.items() if v in [COLUMN_TYPE.CASE_ID,COLUMN_TYPE.ACTIVITY,COLUMN_TYPE.TIMESTAMP,COLUMN_TYPE.START_TIMESTAMP,COLUMN_TYPE.END_TIMESTAMP,COLUMN_TYPE.RESOURCE]}
     
+    if not columns_definition_reverse.get(COLUMN_TYPE.CASE_ID):
+        raise Exception('The log must include a CASE_ID column.')
+    
     if not columns_definition_reverse.get(COLUMN_TYPE.ACTIVITY):
         raise Exception('The log must include an ACTIVITY column.')
     
