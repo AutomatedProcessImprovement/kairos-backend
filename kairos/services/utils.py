@@ -2,6 +2,7 @@ from dateutil import parser
 from datetime import timedelta
 from pymongo.errors import DuplicateKeyError
 from collections import Counter
+from flask import current_app
 
 import copy
 import math
@@ -134,6 +135,11 @@ def record_event(event_data,event_id,project_id):
     except Exception as e:
         print(f'Failed to update case {case_id} perfrmance: {e}')
 
+    current_app.logger.info(f'''STREAMING RESULT: 
+                            event_log_id: {event_log_id},
+                            project_id: {project_id},
+                            case_id: {case_id},
+                            prescriptions: {prescriptions}''')
     return case_id
 
 
