@@ -170,12 +170,18 @@ def define_log_parameters(event_log_id):
     case_completion = request.get_json().get('case_completion')
     parameters_description = request.get_json().get('parameters_description')
 
+    if len(positive_outcome) < 1:
+        current_app.logger.error(f'{request.method} {request.path} 400 - Positive outcome cannot be empty')
+        return jsonify(error='Positive outcome cannot be empty'),400
+
     if not all([positive_outcome, treatment, alarm_threshold, case_completion]):
         current_app.logger.error(f'{request.method} {request.path} 400 - All parameters should be defined')
         return jsonify(error='All parameters should be defined'),400
     
     columns_definition = log.get('columns_definition')
-    positive_outcome['value'] = k_utils.parse_value(columns_definition.get(positive_outcome['column']) or positive_outcome['column'],positive_outcome['value'])
+    for group in positive_outcome:
+        for item in group:
+            item['value'] = k_utils.parse_value(columns_definition.get(item['column']) or item['column'],item['value'])
     treatment['value'] = k_utils.parse_value(columns_definition.get(treatment['column']),treatment['value'])
 
     project_id = log.get('project_id')

@@ -69,9 +69,11 @@ def validate_and_reverse_columns_definition(columns_definition):
 
 def format_positive_outcome(positive_outcome):
     prcore_outcome = copy.deepcopy(positive_outcome)
-    if prcore_outcome.get('unit'):
-        prcore_outcome['value'] = f'{prcore_outcome.get("value")} {prcore_outcome.get("unit")}'
-        prcore_outcome.pop('unit')
+    for group in prcore_outcome:
+        for item in group:
+            if item.get('unit'):
+                item['value'] = f'{item.get("value")} {item.get("unit")}'
+                item.pop('unit')
     return prcore_outcome
 
 def record_event(event_data,event_id,project_id):

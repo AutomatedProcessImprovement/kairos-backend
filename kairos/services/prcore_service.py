@@ -33,7 +33,7 @@ def define_columns(event_log_id,data):
 def define_parameters(project_id,event_log_id,positive_outcome,treatment):
     data = {
             'event_log_id': event_log_id,
-            'positive_outcome': [[positive_outcome]],
+            'positive_outcome': positive_outcome,
             'treatment': [[treatment]]
             }
     if project_id:
