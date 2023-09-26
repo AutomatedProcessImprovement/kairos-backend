@@ -169,7 +169,6 @@ def define_log_parameters(event_log_id):
     alarm_threshold = request.get_json().get('alarm_threshold')
     case_completion = request.get_json().get('case_completion')
     parameters_description = request.get_json().get('parameters_description')
-    additional_info = request.get_json().get('additional_info')
 
     if not all([positive_outcome, treatment, alarm_threshold, case_completion]):
         current_app.logger.error(f'{request.method} {request.path} 400 - All parameters should be defined')
@@ -181,13 +180,12 @@ def define_log_parameters(event_log_id):
 
     project_id = log.get('project_id')
     prcore_outcome = k_utils.format_positive_outcome(positive_outcome)
-    prcore_additional_info = k_utils.format_additional_info(additional_info) if additional_info else None
 
     if project_id: # if parameters are redefined, the previously streamed cases will no longer hold
         cases_db.delete_cases_by_log_id(event_log_id)
 
     try:
-        res = prcore_service.define_parameters(project_id,event_log_id,prcore_outcome,treatment,prcore_additional_info)
+        res = prcore_service.define_parameters(project_id,event_log_id,prcore_outcome,treatment)
         project_id = res.get('project',{}).get('id')
         result_key = res.get('result_key')
     except Exception as e:
@@ -200,7 +198,6 @@ def define_log_parameters(event_log_id):
                             "alarm_threshold": alarm_threshold,
                             "case_completion": case_completion,
                             "parameters_description": parameters_description,
-                            "additional_info": additional_info,
                             'result_key': result_key
                             })
     current_app.logger.info(f'{request.method} {request.path} 200')

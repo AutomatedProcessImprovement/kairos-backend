@@ -30,15 +30,12 @@ def define_columns(event_log_id,data):
     return response(res)
 
     
-def define_parameters(project_id,event_log_id,positive_outcome,treatment,additional_info):
+def define_parameters(project_id,event_log_id,positive_outcome,treatment):
     data = {
             'event_log_id': event_log_id,
             'positive_outcome': [[positive_outcome]],
             'treatment': [[treatment]]
             }
-    if additional_info:
-        data['additional_info'] = additional_info
-        
     if project_id:
         res = requests.put(current_app.config.get('PRCORE_BASE_URL') + f'/project/{project_id}/definition', 
                         headers=current_app.config.get('PRCORE_HEADERS'), 
