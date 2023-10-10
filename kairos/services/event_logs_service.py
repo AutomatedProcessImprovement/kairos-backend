@@ -1,6 +1,10 @@
+import copy
+
 from flask import request, jsonify, current_app
 
 from datetime import datetime
+
+import pandas as pd
 
 import kairos.models.event_logs_model as event_logs_db
 import kairos.models.cases_model as cases_db
@@ -8,7 +12,8 @@ import kairos.models.cases_model as cases_db
 from kairos.enums.project_status import Status as PROJECT_STATUS
 
 import kairos.services.prcore_service as prcore_service
-import kairos.services.utils as k_utils
+import kairos.utils as k_utils
+import kairos.utils.openai as openai_utils
 
 def get_logs():
     try: 
@@ -37,6 +42,8 @@ def save_log():
     if not file:
         current_app.logger.error(f'{request.method} {request.path} 400 - log cannot be none')
         return jsonify(error='Log cannot be none'), 400
+
+    
     test_filename = request.files.get('test').filename if request.files.get('test') else None
     files = []
     for k,f in request.files.items():
@@ -44,6 +51,9 @@ def save_log():
             current_app.logger.error(f'{request.method} {request.path} 400 - incorrect file extension')
             return jsonify(error='Incorrect file extension.'), 400
         files.append(k_utils.format_file(k,f))
+    
+    df = pd.read_csv(file)
+    file.stream.seek(0)
 
     delimiter = request.form.get('delimiter')
     if not delimiter: delimiter = ','
@@ -64,9 +74,10 @@ def save_log():
         current_app.logger.error(f'{request.method} {request.path} 500 - {e}')
         return jsonify(error = str(e)),500
     
+    openai_utils.create_pandas_agent(saved_id,df,delimiter)
+    
     current_app.logger.info(f'{request.method} {request.path} 200')
     return jsonify(logId = str(saved_id)), 200
-
 
 def delete_log(event_log_id):
     try:

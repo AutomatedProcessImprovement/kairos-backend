@@ -13,14 +13,14 @@ from kairos.enums.column_type import Column_type as COLUMN_TYPE
 import kairos.models.cases_model as cases_db
 import kairos.models.event_logs_model as event_logs_db
 
-import kairos.services.openai_service as openai_service
+import kairos.utils.openai as openai_utils
 
 EVALUATION_METHODS = {
-            'EQUAL':lambda x,y: x == y,'NOT_EQUAL':lambda x,y: x!=y,'CONTAINS': lambda x,y: y in x,'NOT_CONTAINS':lambda x,y: y not in x,
-            'GREATER_THAN':lambda x,y: x > y,'LESS_THAN':lambda x,y: x < y,'GREATER_THAN_OR_EQUAL':lambda x,y: x >= y,'LESS_THAN_OR_EQUAL':lambda x,y: x <= y,
-            'IS_TRUE':lambda x,y: x == True,'IS_FALSE':lambda x,y: x == False,
-            'LATER_THAN': lambda x,y: x > y,'EARLIER_THAN': lambda x,y: x < y,'LATER_THAN_OR_EQUAL': lambda x,y: x >= y,'EARLIER_THAN_OR_EQUAL': lambda x,y: x <= y,
-            }
+    'EQUAL':lambda x,y: x == y,'NOT_EQUAL':lambda x,y: x!=y,'CONTAINS': lambda x,y: y in x,'NOT_CONTAINS':lambda x,y: y not in x,
+    'GREATER_THAN':lambda x,y: x > y,'LESS_THAN':lambda x,y: x < y,'GREATER_THAN_OR_EQUAL':lambda x,y: x >= y,'LESS_THAN_OR_EQUAL':lambda x,y: x <= y,
+    'IS_TRUE':lambda x,y: x == True,'IS_FALSE':lambda x,y: x == False,
+    'LATER_THAN': lambda x,y: x > y,'EARLIER_THAN': lambda x,y: x < y,'LATER_THAN_OR_EQUAL': lambda x,y: x >= y,'EARLIER_THAN_OR_EQUAL': lambda x,y: x <= y,
+}
 
 def is_allowed_file(file):
     try:
@@ -88,19 +88,12 @@ def record_event(event_data,event_id,project_id):
             activity[column] = value
 
     prescriptions = event_data.get("prescriptions")
-    prescriptions_with_output = []
-
-    for p in prescriptions:
-        if not prescriptions[p].get('output'): continue
-        description = openai_service.explain_prescription(prescriptions[p])
-        if not description: continue
-        prescriptions[p]['description'] = description
-        prescriptions_with_output.append(prescriptions[p])
-        pprint.pprint(prescriptions[p])
+    prescriptions_with_output = [prescriptions[p] for p in prescriptions if prescriptions[p].get('output')]
 
     case_completed = event_data.get('case_completed')
     if case_completed:
         prescriptions_with_output = []
+
     activity['prescriptions'] = prescriptions_with_output
 
     try:
@@ -128,7 +121,11 @@ def record_event(event_data,event_id,project_id):
         cases_db.update_case_performance(case_id,case_performance)
     except Exception as e:
         print(f'Failed to update case {case_id} perfrmance: {e}')
-
+    
+    if case_completed:
+        single_case = cases_db.get_case(case_id)
+        openai_utils.save_openai_context(input=f'This case has been completed: {single_case}',event_log_id=event_log_id)
+    
     return case_id
 
 
