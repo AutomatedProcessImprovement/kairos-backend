@@ -88,15 +88,7 @@ def record_event(event_data,event_id,project_id):
             activity[column] = value
 
     prescriptions = event_data.get("prescriptions")
-    prescriptions_with_output = []
-
-    for p in prescriptions:
-        if not prescriptions[p].get('output'): continue
-        description = openai_service.explain_prescription(prescriptions[p])
-        if not description: continue
-        prescriptions[p]['description'] = description
-        prescriptions_with_output.append(prescriptions[p])
-        pprint.pprint(prescriptions[p])
+    prescriptions_with_output = [prescriptions[p] for p in prescriptions if prescriptions[p].get('output')]
 
     case_completed = event_data.get('case_completed')
     if case_completed:
