@@ -8,7 +8,7 @@ import kairos.models.cases_model as cases_db
 from kairos.enums.project_status import Status as PROJECT_STATUS
 
 import kairos.services.prcore_service as prcore_service
-import kairos.services.utils as k_utils
+import kairos.utils as k_utils
 
 def get_logs():
     try: 
