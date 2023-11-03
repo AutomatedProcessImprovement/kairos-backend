@@ -69,11 +69,6 @@ def record_event(event_data,event_id,project_id):
     except Exception as e:
         print(f'Failed to update case {case_id} perfrmance: {e}')
 
-    if case_completed:
-        current_case = cases_db.get_case(case_id)
-        context = f"A case has completed in the event log {event_log_id}. Here is the case {case_id}: {current_case}"
-        openai_utils.save_context(context=context, event_log_id=event_log_id, case_id=case_id)
-
     return case_id
 
 def record_results(project_id,result):
