@@ -27,7 +27,7 @@ def is_allowed_file(file):
     try:
         extension = file.filename.rsplit('.', 1)[1].lower()
     except Exception as e:
-        print(str(e))
+        current_app.logger.error(f'Error in is_allowed_file: {str(e)}')
         return False
     return extension in ['xes','csv','zip']
 
@@ -71,9 +71,11 @@ def validate_and_reverse_columns_definition(columns_definition):
 
 def format_positive_outcome(positive_outcome):
     prcore_outcome = copy.deepcopy(positive_outcome)
-    if prcore_outcome.get('unit'):
-        prcore_outcome['value'] = f'{prcore_outcome.get("value")} {prcore_outcome.get("unit")}'
-        prcore_outcome.pop('unit')
+    for group in prcore_outcome:
+        for item in group:
+            if item.get('unit'):
+                item['value'] = f'{item.get("value")} {item.get("unit")}'
+                item.pop('unit')
     return prcore_outcome
 
 def format_additional_info(additional_info):
@@ -89,7 +91,7 @@ def record_event(event_data,event_id,project_id):
     try:
         log = event_logs_db.get_event_log_by_project_id(project_id)
     except Exception as e:
-        print(str(e))
+        current_app.logger.error(f'Error while getting event log by project_id {project_id}: {str(e)}')
         return 
     event_log_id = log.get('_id')
     columns_definition = log.get("columns_definition")
@@ -139,7 +141,7 @@ def record_event(event_data,event_id,project_id):
         try:
             update_case_prescriptions(old_case,activity,columns_definition_reverse.get(COLUMN_TYPE.ACTIVITY))
         except Exception as e:
-            print(f'Failed to update case {case_id} prescriptions: {e}')
+            current_app.logger.error(f'Failed to update case {case_id} prescriptions: {e}')
 
         cases_db.update_case(case_id,case_completed,activity)
 
@@ -147,12 +149,12 @@ def record_event(event_data,event_id,project_id):
     try:
         case_performance = calculate_case_performance(case_id,log.get('positive_outcome'),columns_definition, columns_definition_reverse)
     except Exception as e:
-        print(f'Failed to calculate case {case_id} perfrmance: {e}')
+        current_app.logger.error(f'Failed to calculate case {case_id} performance: {e}')
 
     try:
         cases_db.update_case_performance(case_id,case_performance)
     except Exception as e:
-        print(f'Failed to update case {case_id} perfrmance: {e}')
+        current_app.logger.error(f'Failed to update case {case_id} performance: {e}')
 
     current_app.logger.info(f'''STREAMING RESULT: 
                             event_log_id: {event_log_id},
@@ -182,45 +184,56 @@ def update_case_prescriptions(my_case,new_activity,activity_column):
 def calculate_case_performance(case_id,positive_outcome, columns_definition, columns_definition_reverse):
     my_case = cases_db.get_case(case_id)
     
-    column = positive_outcome['column']
-    value = positive_outcome['value']
-    operator = positive_outcome['operator']
+    if type(positive_outcome) is dict:
+        positive_outcome = [[positive_outcome]]
 
-    last_activity = my_case['activities'][-1]
-    start = my_case['activities'][0][columns_definition_reverse.get(COLUMN_TYPE.START_TIMESTAMP)]
-    end = last_activity.get(columns_definition_reverse.get(COLUMN_TYPE.END_TIMESTAMP))
+    case_performance = []
 
-    column_type = columns_definition.get(column)
+    for i in range(len(positive_outcome)):
+        case_performance.append([])
+        for j in range(len(positive_outcome[i])):
+            positive_outcome_item = positive_outcome[i][j]
 
-    if column_type == None:
-        if column == COLUMN_TYPE.DURATION:
-            column_type = COLUMN_TYPE.DURATION
-            unit = positive_outcome.get('unit')
-            actual_value = calculate_duration(start,end,unit)
-        else:
-            raise Exception(f'Unsupported column: {column}')
-    else:
-        actual_value = my_case.get('case_attributes').get(column) if not last_activity.get(column) else last_activity.get(column)
-    
-    if actual_value == None:
-        print(f'something went wrong, actual value: {actual_value},column: {column}')
-        raise Exception('something went wrong while calculating case performance.')
+            column = positive_outcome_item['column']
+            value = positive_outcome_item['value']
+            operator = positive_outcome_item['operator']
+            unit = positive_outcome_item.get('unit')
 
-    value = parse_value(column_type, value)
-    actual_value = parse_value(column_type,actual_value)
+            last_activity = my_case['activities'][-1]
+            start = my_case['activities'][0][columns_definition_reverse.get(COLUMN_TYPE.START_TIMESTAMP)]
+            end = last_activity.get(columns_definition_reverse.get(COLUMN_TYPE.END_TIMESTAMP))
 
-    outcome = EVALUATION_METHODS.get(operator)(actual_value,value)
+            column_type = columns_definition.get(column)
 
-    unit = None
-    if column == 'DURATION': 
-        actual_value,unit = calculate_duration_without_units(start,end)
+            if column_type == None:
+                if column == COLUMN_TYPE.DURATION:
+                    column_type = COLUMN_TYPE.DURATION
+                    actual_value = calculate_duration(start,end,unit)
+                else:
+                    raise Exception(f'Unsupported column: {column}')
+            else:
+                actual_value = my_case.get('case_attributes').get(column) if not last_activity.get(column) else last_activity.get(column)
+            
+            if actual_value == None:
+                current_app.logger.error(f'something went wrong, actual value: {actual_value},column: {column}')
+                raise Exception('something went wrong while calculating case performance.')
 
-    case_performance = {
-            'column': column,
-            'value': actual_value,
-            'outcome': outcome,
-            'unit':unit
-            }
+            value = parse_value(column_type, value)
+            actual_value = parse_value(column_type,actual_value)
+
+            outcome = EVALUATION_METHODS.get(operator)(actual_value,value)
+
+            unit = None
+            if column == 'DURATION': 
+                actual_value,unit = calculate_duration_without_units(start,end)
+
+            case_performance[i].append({
+                    'column': column,
+                    'value': actual_value,
+                    'outcome': outcome,
+                    'unit':unit
+                    })
+            
     return case_performance
 
 def calculate_duration(start,end,unit):
@@ -292,7 +305,7 @@ def record_results(project_id,result):
     try:
         log = event_logs_db.get_event_log_by_project_id(project_id)
     except Exception as e:
-        print(str(e))
+        current_app.logger.error(f'Error while getting event log by project id {project_id}: {str(e)}')
         return
     
     event_log_id = log.get('_id')
@@ -349,12 +362,12 @@ def record_results(project_id,result):
         try:
             case_performance = calculate_case_performance(_id,log.get('positive_outcome'),columns_definition, columns_definition_reverse)
         except Exception as e:
-            print(f'Failed to calculate case {case_id} perfrmance: {e}')
+            current_app.logger(f'Failed to calculate case {case_id} performance: {e}')
 
         try:
             cases_db.update_case_performance(_id,case_performance)
         except Exception as e:
-            print(f'Failed to update case {case_id} perfrmance: {e}')
+            current_app.logger(f'Failed to update case {case_id} performance: {e}')
         
     event_logs_db.update_event_log(event_log_id,{'got_results': True})  
 
