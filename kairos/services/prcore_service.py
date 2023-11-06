@@ -4,7 +4,7 @@ import requests
 import sseclient
 from flask import current_app
 
-import kairos.services.utils as k_utils
+import kairos.utils as k_utils
 
 def response(res,status=False,json=True):
     if res.status_code != 200:
