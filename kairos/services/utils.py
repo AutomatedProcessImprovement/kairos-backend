@@ -21,6 +21,8 @@ EVALUATION_METHODS = {
             'LATER_THAN': lambda x,y: x > y,'EARLIER_THAN': lambda x,y: x < y,'LATER_THAN_OR_EQUAL': lambda x,y: x >= y,'EARLIER_THAN_OR_EQUAL': lambda x,y: x <= y,
             }
 
+THRESHOLD_FACTOR = 1
+
 def is_allowed_file(file):
     try:
         extension = file.filename.rsplit('.', 1)[1].lower()
@@ -98,6 +100,7 @@ def record_event(event_data,event_id,project_id):
     activity = {'event_id': event_id}
     case_attributes = {}
 
+
     for column,value in event_data.get('data').items():
         column_type = columns_definition.get(column)
         value = parse_value(column_type,value)
@@ -111,6 +114,15 @@ def record_event(event_data,event_id,project_id):
 
     prescriptions = event_data.get("prescriptions")
     prescriptions_with_output = [prescriptions[p] for p in prescriptions if prescriptions[p]["output"]]
+    
+    for prescription in prescriptions_with_output:
+        if prescription.get('type') == 'TREATMENT_EFFECT':
+            try:
+                category = categorize_cate(event_log_id,prescription)
+                prescription.get('output',{})['cate_category'] = category
+            except Exception as e:
+                current_app.logger.error(f"Error occured while categorizing cate in case {case_id}: {str(e)}")
+    
     case_completed = event_data.get('case_completed')
     if case_completed:
         prescriptions_with_output = []
@@ -123,7 +135,6 @@ def record_event(event_data,event_id,project_id):
     
     if not old_case:
         _id = cases_db.save_case(case_id,event_log_id,case_completed,[activity],case_attributes).inserted_id
-        # print(f'saved case: {_id}')
     else: 
         try:
             update_case_prescriptions(old_case,activity,columns_definition_reverse.get(COLUMN_TYPE.ACTIVITY))
@@ -131,7 +142,6 @@ def record_event(event_data,event_id,project_id):
             print(f'Failed to update case {case_id} prescriptions: {e}')
 
         cases_db.update_case(case_id,case_completed,activity)
-        # print(f'updated case: {case_id}')
 
     case_performance = {}
     try:
@@ -299,6 +309,14 @@ def record_results(project_id,result):
         activities = []
         case_attributes = {}
 
+        for prescription in prescriptions_with_output:
+            if prescription.get('type') == 'TREATMENT_EFFECT':
+                try:
+                    category = categorize_cate(event_log_id,prescription)
+                    prescription.get('output',{})['cate_category'] = category
+                except Exception as e:
+                    current_app.logger.error(f"Error occured while categorizing cate in case {case_id}: {str(e)}")
+
         for i in range(len(events)):
             event_data = events[i]
             event_data = dict(zip(columns, event_data))
@@ -327,8 +345,6 @@ def record_results(project_id,result):
             except DuplicateKeyError:
                 suffix = generate_suffix()
         
-        # print(f'saved case: {_id}')
-
         case_performance = {}
         try:
             case_performance = calculate_case_performance(_id,log.get('positive_outcome'),columns_definition, columns_definition_reverse)
@@ -345,3 +361,26 @@ def record_results(project_id,result):
 def generate_suffix():
     rand = ''.join(random.choices(string.ascii_letters + string.digits, k=8))
     return rand + '-'
+
+def categorize_cate(event_log_id,new_prescription):
+    aggregate = cases_db.get_treatment_mean_and_std(event_log_id)
+    if not aggregate: return None
+
+    _,mean_cate,std_dev_cate = aggregate[0].values()
+    
+    current_cate = None
+
+    if mean_cate and std_dev_cate:
+        low_threshold = mean_cate - THRESHOLD_FACTOR * std_dev_cate
+        high_threshold = mean_cate + THRESHOLD_FACTOR * std_dev_cate
+
+        cate_value = new_prescription.get('output', {}).get('cate', None)
+
+        if cate_value < low_threshold:
+            current_cate = "low"
+        elif cate_value > high_threshold:
+            current_cate = "high"
+        else:
+            current_cate = "medium"
+
+    return current_cate

@@ -208,7 +208,7 @@ def define_log_parameters(event_log_id):
 
 def get_log_prescriptions(event_log_id):
     try:
-        prescriptions = cases_db.get_prescriptions(event_log_id)
+        prescriptions = cases_db.get_current_prescriptions(event_log_id)
         current_app.logger.info(f'{request.method} {request.path} 200')
         return jsonify(prescriptions = prescriptions),200
     except Exception as e:

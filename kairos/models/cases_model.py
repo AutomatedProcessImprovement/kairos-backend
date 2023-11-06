@@ -71,6 +71,16 @@ def update_case_performance(case_id,case_performance):
         raise Exception(f'No case found with ID {case_id}') 
     return response
 
-def get_prescriptions(event_log_id):
+def get_current_prescriptions(event_log_id):
     prescriptions = db.cases.find({"event_log_id": int(event_log_id)},{'activities': {'$slice': -1},'case_performance': 1})
     return list(prescriptions)
+
+def get_treatment_mean_and_std(event_log_id):
+    pipeline = [
+        { "$match": { "event_log_id": int(event_log_id) } },
+        { "$unwind": "$activities" },
+        { "$unwind": "$activities.prescriptions" },
+        { "$group": { "_id": None, "mean_cate": { "$avg": "$activities.prescriptions.output.cate" }, "std_dev_cate": { "$stdDevPop": "$activities.prescriptions.output.cate" } } }
+    ]
+    result = db.cases.aggregate(pipeline)
+    return list(result)
