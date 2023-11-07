@@ -5,9 +5,7 @@ from kairos.enums.column_type import Column_type as COLUMN_TYPE
 import kairos.models.cases_model as cases_db
 import kairos.models.event_logs_model as event_logs_db
 
-import kairos.utils.openai as openai_utils
-
-from kairos.utils import parse_value, generate_suffix, calculate_case_performance, update_case_prescriptions
+from kairos.utils import parse_value, generate_suffix, calculate_case_performance, update_case_prescriptions, categorize_cate
 
 def record_event(event_data,event_id,project_id):
     try:
@@ -37,6 +35,11 @@ def record_event(event_data,event_id,project_id):
 
     prescriptions = event_data.get("prescriptions")
     prescriptions_with_output = [prescriptions[p] for p in prescriptions if prescriptions[p].get('output')]
+
+    for prescription in prescriptions_with_output:
+        if prescription.get('type') == 'TREATMENT_EFFECT':
+            category = categorize_cate(event_log_id,prescription)
+            prescription.get('output',{})['cate_category'] = category
 
     case_completed = event_data.get('case_completed')
     if case_completed:
@@ -94,6 +97,11 @@ def record_results(project_id,result):
         prescriptions_with_output = [p for p in prescriptions if p["output"]]
         activities = []
         case_attributes = {}
+
+        for prescription in prescriptions_with_output:
+            if prescription.get('type') == 'TREATMENT_EFFECT':
+                category = categorize_cate(event_log_id,prescription)
+                prescription.get('output',{})['cate_category'] = category
 
         for i in range(len(events)):
             event_data = events[i]
