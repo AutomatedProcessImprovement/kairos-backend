@@ -4,7 +4,7 @@ import requests
 import sseclient
 from flask import current_app
 
-import kairos.utils as k_utils
+import kairos.utils.events as events_utils
 
 def response(res,status=False,json=True):
     if res.status_code != 200:
@@ -85,16 +85,12 @@ def start_stream(project_id):
 
         event_data = json.loads(event.data)
         first_event = event_data[0]
-        # print(f"ID: {event.id}")
 
-        case_id = k_utils.record_event(first_event,event.id,project_id)
-        
-        # print("-" * 24)
-
+        case_id = events_utils.record_event(first_event,event.id,project_id)
 
 def get_static_results(project_id,result_key):
     res = requests.get(current_app.config.get('PRCORE_BASE_URL') + f'/project/{project_id}/result/{result_key}', headers=current_app.config.get('PRCORE_HEADERS'))
     res_json = response(res)
     message = res_json.get('message')
-    k_utils.record_results(project_id,res_json)
+    events_utils.record_results(project_id,res_json)
     return message
