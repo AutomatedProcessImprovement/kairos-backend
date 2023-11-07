@@ -76,6 +76,15 @@ def format_positive_outcome(positive_outcome):
                 item.pop('unit')
     return prcore_outcome
 
+def format_additional_info(additional_info):
+    if not additional_info: return None
+    prcore_additional_info = copy.deepcopy(additional_info)
+    
+    treatment_duration = prcore_additional_info['plugin_causallift_resource_allocation']['treatment_duration']
+    prcore_additional_info['plugin_causallift_resource_allocation']['treatment_duration'] = f'{treatment_duration.get("value")}{treatment_duration.get("unit")}'
+    prcore_additional_info['plugin-causallift-resource-allocation'] = prcore_additional_info.pop('plugin_causallift_resource_allocation')
+    return prcore_additional_info
+
 def update_case_prescriptions(my_case,new_activity,activity_column):    
     new_activities = my_case.get('activities')
     last_activity = new_activities[-1]
