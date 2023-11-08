@@ -10,6 +10,7 @@ env:
     DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
     DOCKER_NAMESPACE: ${{ secrets.DOCKER_NAMESPACE }}
     DOCKER_REPOSITORY: ${{ secrets.DOCKER_REPOSITORY }}
+    OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
     
 jobs:
     push_to_registry:
