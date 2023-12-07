@@ -41,8 +41,8 @@ event_logs_api.route('/<event_log_id>/results', methods=['GET'])(event_logs_serv
 
 # openai
 
-event_logs_api.route('/<event_log_id>/openai/history', methods=['GET'])(openai_service.get_messages_for_log)
-
 event_logs_api.route('/<event_log_id>/cases/<case_id>/openai/history', methods=['GET'])(openai_service.get_messages_for_case)
 
 event_logs_api.route('/<event_log_id>/cases/<case_id>/openai', methods=['POST'])(openai_service.get_answer)
+
+event_logs_api.route('/<event_log_id>/cases/<case_id>/openai', methods=['DELETE'])(openai_service.delete_thread)

@@ -5,8 +5,6 @@ from kairos.enums.column_type import Column_type as COLUMN_TYPE
 import kairos.models.cases_model as cases_db
 import kairos.models.event_logs_model as event_logs_db
 
-import kairos.utils.openai as openai_utils
-
 from kairos.utils import parse_value, generate_suffix, calculate_case_performance, update_case_prescriptions
 
 def record_event(event_data,event_id,project_id):
