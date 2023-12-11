@@ -52,7 +52,6 @@ def update_case(case_id,case_completed,activity):
         raise Exception(f'No case found with ID {case_id}') 
     return response
 
-
 def update_case_prescriptions(case_id,new_activities):
     db.cases.update_many(
         {"_id": case_id},
@@ -84,3 +83,57 @@ def get_treatment_mean_and_std(event_log_id):
     ]
     result = db.cases.aggregate(pipeline)
     return list(result)
+
+def update_case_thread_id(case_id,thread_id):
+    response = db.cases.find_one_and_update(
+        {"_id": case_id},
+        {
+            "$set": {'thread_id': thread_id},
+        },
+        return_document=ReturnDocument.AFTER
+    )
+    if not response:
+        raise Exception(f'No case found with ID {case_id}') 
+    return response
+
+def get_case_thread_id(case_id):
+    response = db.cases.aggregate(
+        [{'$match': {'_id': case_id}}, {'$project': {'thread_id': 1, '_id': 0}}]
+    )
+    if not response:
+        raise Exception(f'No case found with ID {case_id}') 
+    return list(response)[0].get('thread_id')
+
+
+def get_case_structure(case_id):
+    response = db.cases.aggregate(
+        [
+            {'$match': { '_id': case_id }},
+            {'$unwind': "$activities"},
+            {'$project': {
+                '_id': 1,
+                'event_log_id': 1,
+                'case_completed': 1,
+                'case_attributes': 1,
+                'case_performance': 1,
+                'activities': 1,
+                'numPrescriptions': { '$size': "$activities.prescriptions" }
+            } },
+            {
+                '$sort': { 'numPrescriptions': -1 }
+            },
+            {
+                '$group': {
+                    '_id': "$_id",
+                    'event_log_id': { '$first': "$event_log_id" },
+                    'case_completed': { '$first': "$case_completed" },
+                    'case_attributes': { '$first': "$case_attributes" },
+                    'case_performance': { '$first': "$case_performance" },
+                    'activities': { '$first': "$activities" }
+                }
+            }
+        ]
+    )
+    if not response:
+        raise Exception(f'No case found with ID {case_id}') 
+    return list(response)[0]

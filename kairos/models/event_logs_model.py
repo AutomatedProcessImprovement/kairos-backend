@@ -44,3 +44,24 @@ def delete_event_log(event_log_id):
     response = db.files.delete_one({"_id": int(event_log_id)})
     if not response:
         raise Exception(f'No log found with ID {event_log_id}') 
+
+def get_event_log_structure(event_log_id):
+    response = db.files.aggregate(
+        [
+            {'$match': { '_id': event_log_id }},
+            {'$project': {
+                '_id': 1,
+                'filename': 1,
+                'number_of_cases': 1,
+                'columns_definition': 1,
+                'cost_units': 1,
+                'case_completion': 1,
+                'alarm_threshold': 1,
+                'positive_outcome': 1,
+                'treatment': 1,
+            } }
+        ]
+    )
+    if not response:
+        raise Exception(f'No log found with ID {event_log_id}') 
+    return list(response)

@@ -1,5 +1,6 @@
 from flask import current_app, g
 from pymongo import MongoClient
+from werkzeug.local import LocalProxy
 
 def get_db():
     """
@@ -12,3 +13,7 @@ def get_db():
         db = g._database = MongoClient(current_app.config.get('MONGO_URI')).flask_db
        
     return db
+
+def query_db(collection, aggregate:list):
+    db = LocalProxy(get_db)
+    return db[collection].aggregate(aggregate)
