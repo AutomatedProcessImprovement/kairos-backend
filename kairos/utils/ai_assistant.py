@@ -32,7 +32,7 @@ def ask_ai(case_id,event_log_id,question):
 
     run = client.beta.threads.runs.create(
         thread_id=thread_id,
-        assistant_id=ASSISTANT_DATA.ID,
+        assistant_id=current_app.config.get('OPENAI_ASSISTANT_ID'),
         instructions=instructions
     )
     run_id = run.id
@@ -70,9 +70,10 @@ def ask_ai(case_id,event_log_id,question):
                             collection = 'cases'
 
                         aggregate = function_args.get('aggregate')
+                        query = function_args.get('query')
 
                         if aggregate == None:
-                            current_app.logger.error('Aggregate field was null. Defaulting to base query.')
+                            current_app.logger.error(f'Aggregate field was null. Defaulting to base query. Query field: {query}')
                             aggregate = [{"$match": {"_id": case_id}}]
 
                         current_app.logger.info(f'Running function {function_to_call} with args {collection,aggregate}')
@@ -158,7 +159,7 @@ def format_message(message):
 
 def modify_assistant():
     client.beta.assistants.update(
-        assistant_id=ASSISTANT_DATA.ID,
+        assistant_id=current_app.config.get('OPENAI_ASSISTANT_ID'),
         instructions=ASSISTANT_DATA.instructions
     )
 
