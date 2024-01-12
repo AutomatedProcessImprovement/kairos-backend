@@ -1,5 +1,5 @@
 from openai import OpenAI
-from kairos.models.db import query_db
+from kairos.models.db import query_db, find_similar_cases
 from kairos.enums.assistant_data import ASSISTANT_DATA
 from flask import current_app
 from json import JSONDecodeError
@@ -53,7 +53,10 @@ def ask_ai(case_id,event_log_id,question):
             if run.required_action and run.required_action.type == "submit_tool_outputs":
                 tool_calls = run.required_action.submit_tool_outputs.tool_calls
                 if tool_calls:
-                    available_functions = {"query_db" : query_db}
+                    available_functions = {
+                        "query_db" : query_db,
+                        "find_similar_cases" : find_similar_cases
+                    }
                     tool_outputs = []
                     for tool_call in tool_calls:
 
@@ -62,28 +65,37 @@ def ask_ai(case_id,event_log_id,question):
                         function_to_call = available_functions[function_name]
 
                         function_args = convert_to_json(tool_call.function.arguments)
+                        
+                        if function_name == "query_db":
 
-                        collection = function_args.get('collection')
+                            collection = function_args.get('collection')
 
-                        if collection == None:
-                            current_app.logger.error('Collection field was null. Defaulting to base value.')
-                            collection = 'cases'
+                            if collection == None:
+                                current_app.logger.error('Collection field was null. Defaulting to base value.')
+                                collection = 'cases'
 
-                        aggregate = function_args.get('aggregate')
-                        query = function_args.get('query')
+                            aggregate = function_args.get('aggregate')
 
-                        if aggregate == None:
-                            current_app.logger.error(f'Aggregate field was null. Defaulting to base query. Query field: {query}')
-                            aggregate = [{"$match": {"_id": case_id}}]
+                            if aggregate == None:
+                                current_app.logger.error(f'Aggregate field was null. Defaulting to base query. Aggregate field: {aggregate}')
+                                aggregate = [{"$match": {"_id": case_id}}]
 
-                        current_app.logger.info(f'Running function {function_to_call} with args {collection,aggregate}')
+                            current_app.logger.info(f'Running function {function_to_call} with args {collection,aggregate}')
 
-                        function_response = function_to_call(
-                            collection=collection,
-                            aggregate=aggregate,
-                        )
+                            function_response = function_to_call(
+                                collection=collection,
+                                aggregate=aggregate,
+                            )
+
+                        else:
+                            case_id_arg = function_args.get('case_id') or case_id
+                            current_app.logger.info(f'Running function {function_to_call} with args {case_id}')
+
+                            function_response = function_to_call(case_id=case_id_arg)
+
                         function_response = str(list(function_response))
                         current_app.logger.info(f'Function respone: {function_response}')
+                        
                         tool_outputs.append({
                             "tool_call_id" : tool_call_id,
                             "output" : function_response
