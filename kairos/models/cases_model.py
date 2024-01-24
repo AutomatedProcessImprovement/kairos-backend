@@ -39,12 +39,17 @@ def save_case(case_id,event_log_id,case_completed,activities,case_attributes):
         }
     return db.cases.insert_one(new_case)
 
-def update_case(case_id,case_completed,activity):
+def update_case(case_id,case_completed,activity,timestamp_column):
     response = db.cases.find_one_and_update(
         {"_id": case_id},
         {
             "$set": { 'case_completed':case_completed},
-            "$push":{'activities': activity}
+            "$push":{
+                "activities": {
+                    "$each": [activity],
+                    "$sort": {timestamp_column: 1}
+                }
+            }
         },
         return_document=ReturnDocument.AFTER
     )

@@ -1,5 +1,5 @@
 from dateutil import parser
-from datetime import timedelta
+from datetime import timedelta,datetime
 from pymongo.errors import DuplicateKeyError
 from collections import Counter
 from flask import current_app
@@ -8,6 +8,7 @@ import copy
 import math
 import random
 import string
+import pytz
 
 from kairos.enums.column_type import Column_type as COLUMN_TYPE
 
@@ -114,15 +115,13 @@ def record_event(event_data,event_id,project_id):
     
     if not old_case:
         _id = cases_db.save_case(case_id,event_log_id,case_completed,[activity],case_attributes).inserted_id
-        # print(f'saved case: {_id}')
     else: 
         try:
             update_case_prescriptions(old_case,activity,columns_definition_reverse.get(COLUMN_TYPE.ACTIVITY))
         except Exception as e:
             print(f'Failed to update case {case_id} prescriptions: {e}')
-
-        cases_db.update_case(case_id,case_completed,activity)
-        # print(f'updated case: {case_id}')
+        timestamp_column = columns_definition_reverse.get(COLUMN_TYPE.START_TIMESTAMP)
+        cases_db.update_case(case_id,case_completed,activity,str(timestamp_column))
 
     case_performance = {}
     try:
@@ -187,8 +186,8 @@ def calculate_case_performance(case_id,positive_outcome, columns_definition, col
         print(f'something went wrong, actual value: {actual_value},column: {column}')
         raise Exception('something went wrong while calculating case performance.')
 
-    value = parse_value(column_type, value)
-    actual_value = parse_value(column_type,actual_value)
+    # value = parse_value(column_type, value)
+    # actual_value = parse_value(column_type,actual_value)
 
     outcome = EVALUATION_METHODS.get(operator)(actual_value,value)
 
@@ -217,21 +216,23 @@ def calculate_duration(start,end,unit):
         'seconds':'seconds',
         'second':'seconds'
     }
-    start_time = parser.parse(start)
-    end_time = parser.parse(end)
+    if isinstance(start, str) and isinstance(end, str):
+        start = parser.parse(start)
+        end = parser.parse(end)
     
     if unit not in time_units:
         raise Exception(f'Invalid time unit for duration: {unit}')
     
-    duration = (end_time - start_time) // timedelta(**{time_units[unit]: 1})
+    duration = (end - start) // timedelta(**{time_units[unit]: 1})
 
     return duration
 
 def calculate_duration_without_units(start,end):
-    start_time = parser.parse(start)
-    end_time = parser.parse(end)
+    if isinstance(start, str) and isinstance(end, str):
+        start = parser.parse(start)
+        end = parser.parse(end)
 
-    duration = int((end_time - start_time).total_seconds())
+    duration = int((end - start).total_seconds())
     if duration >= 604800 and (duration % 604800) < 86400:
         unit = 'weeks'
         duration /= 604800
@@ -258,8 +259,9 @@ def parse_value(column_type,value):
             value = 'nan'
     elif column_type in [COLUMN_TYPE.DATETIME,COLUMN_TYPE.TIMESTAMP,COLUMN_TYPE.START_TIMESTAMP,COLUMN_TYPE.END_TIMESTAMP]:
         try:
-            value = parser.parse(value, ignoretz=True).strftime('%Y-%m-%d %H:%M:%SZ')
+            value = parser.parse(value, ignoretz=True)
         except Exception:
+            current_app.logger.error("Could not parse datetime object")
             value = str(value)
     elif column_type == COLUMN_TYPE.BOOLEAN:
         value = value in ['True','true',True]
