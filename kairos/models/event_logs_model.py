@@ -6,14 +6,13 @@ db = LocalProxy(get_db)
 def get_event_logs():
     return list(db.files.find({}))
 
+def get_event_logs_by_ids(logIds):
+    return list(db.files.find({"_id": {"$in": logIds}}))
 
 def get_event_log(event_log_id):
     log = db.files.find_one({"_id": int(event_log_id)})
-    if log == None:
-        raise Exception(f'No log found with ID {event_log_id}')
     return log
     
-
 def get_event_log_by_project_id(project_id):
     log = db.files.find_one({"project_id": project_id})
     if not log:
