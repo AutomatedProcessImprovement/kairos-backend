@@ -29,7 +29,6 @@ COPY --from=builder /opt/venv /opt/venv
 WORKDIR /app
 COPY ./kairos ./kairos
 COPY ./app.py .
-COPY ./config.py .
 
 EXPOSE 5000
 CMD ["gunicorn", "--workers=3", "--threads=3", "-b", ":5000", "app:app", "--timeout 1000"]

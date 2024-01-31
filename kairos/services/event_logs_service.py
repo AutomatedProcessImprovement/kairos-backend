@@ -9,8 +9,18 @@ import kairos.services.prcore_service as prcore_service
 import kairos.services.utils as k_utils
 
 def get_logs():
+    logIds = request.args.getlist('logIds[]')
+    try:
+        logIds = [int(logId) for logId in logIds]
+    except Exception as e:
+        current_app.logger.error(f'{request.method} {request.path} 400 - Event log IDs should be integers.')
+        return jsonify(error="Event log IDs should be integers."),400
+    
     try: 
-        logs = event_logs_db.get_event_logs()
+        if logIds:
+            logs = event_logs_db.get_event_logs_by_ids(logIds)
+        else:
+            logs = []
     except Exception as e:
         current_app.logger.error(f'{request.method} {request.path} 500 - {e}')
         return jsonify(error=str(e)),500
