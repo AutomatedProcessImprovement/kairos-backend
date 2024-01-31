@@ -29,7 +29,7 @@ def ask_ai(case_id,event_log_id,question):
     current_app.logger.info(f' Added message to thread')
     # Create a run
     instructions=ASSISTANT_DATA.instructions(event_logs_db_structure=event_log_instance,cases_db_structure=case_instance,event_log_id=event_log_id, case_id=case_id)
-
+    
     run = client.beta.threads.runs.create(
         thread_id=thread_id,
         assistant_id=current_app.config.get('OPENAI_ASSISTANT_ID'),
@@ -81,12 +81,20 @@ def ask_ai(case_id,event_log_id,question):
                                 aggregate = [{"$match": {"_id": case_id}}]
 
                             current_app.logger.info(f'Running function {function_to_call} with args {collection,aggregate}')
-
-                            function_response = function_to_call(
-                                collection=collection,
-                                aggregate=aggregate,
-                            )
-
+                            
+                            try:
+                                function_response = function_to_call(
+                                    collection=collection,
+                                    aggregate=aggregate,
+                                )
+                            except Exception as e:
+                                current_app.logger.error(f"An error occured while calling function with AI generated arguments, cancelling run {run_id}. - {str(e)}")
+                                client.beta.threads.runs.cancel(
+                                    thread_id=thread_id,
+                                    run_id=run_id,
+                                )
+                                raise Exception("An error occured while retrieving AI assistant response. Please try again.")
+                                
                         else:
                             case_id_arg = function_args.get('case_id') or case_id
                             current_app.logger.info(f'Running function {function_to_call} with args {case_id}')
