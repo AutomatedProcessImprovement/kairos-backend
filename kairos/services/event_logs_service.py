@@ -20,7 +20,7 @@ def get_logs():
         if logIds:
             logs = event_logs_db.get_event_logs_by_ids(logIds)
         else:
-            logs = event_logs_db.get_event_logs()
+            logs = []
     except Exception as e:
         current_app.logger.error(f'{request.method} {request.path} 500 - {e}')
         return jsonify(error=str(e)),500
