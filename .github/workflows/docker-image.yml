@@ -4,6 +4,7 @@ on:
     push:
         tags:
         - '*'
+    workflow_dispatch:
           
 env:
     DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
@@ -13,7 +14,7 @@ env:
     
 jobs:
     push_to_registry:
-        if: ${{ startsWith(github.ref, 'refs/tags') || github.event_name == 'workflow_dispatch' }}
+        if: ${{ github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags') }}
         name: Push Docker image to Docker Hub
         runs-on: ubuntu-latest
         steps:
