@@ -11,7 +11,7 @@ import json
 import time
 import re
 
-client = OpenAI()
+client = OpenAI(default_headers={"OpenAI-Beta": "assistants=v1"})
 
 def ask_ai(case_id,event_log_id,question):
     thread_id = get_case_thread_id(case_id)
@@ -180,7 +180,8 @@ def format_message(message):
 def modify_assistant():
     client.beta.assistants.update(
         assistant_id=current_app.config.get('OPENAI_ASSISTANT_ID'),
-        instructions=ASSISTANT_DATA.instructions
+        instructions=ASSISTANT_DATA.instructions,
+        file_ids=[]
     )
 
 def convert_to_json(json_string):
