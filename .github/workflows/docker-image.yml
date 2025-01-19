@@ -3,7 +3,11 @@ name: Docker Image CI
 on:
     push:
         tags:
-        - '*'
+          - '*'
+        branches:
+          - main     
+          - test      
+        
     workflow_dispatch:
           
 env:
@@ -14,7 +18,7 @@ env:
     
 jobs:
     push_to_registry:
-        if: ${{ github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags') }}
+        if: ${{ github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/') }}
         name: Push Docker image to Docker Hub
         runs-on: ubuntu-latest
         steps:
