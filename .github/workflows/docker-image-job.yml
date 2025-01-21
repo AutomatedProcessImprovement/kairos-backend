@@ -3,14 +3,8 @@ name: Docker Image CI
 on:
   push:
     tags:
-      - '*'  # Trigger for all tags
+      - '*'
   workflow_dispatch:
-    inputs:
-      manual_branch:
-        description: Set branch
-        required: true
-        type: string
-        default: test
 
 env:
   DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
@@ -46,4 +40,3 @@ jobs:
           file: ./Dockerfile
           push: true
           tags: ${{ steps.api_meta.outputs.tags }}
-
