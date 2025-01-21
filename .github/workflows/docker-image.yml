@@ -5,6 +5,12 @@ on:
     tags:
       - '*'  # Trigger for all tags
   workflow_dispatch:
+    inputs:
+      manual_branch:
+        description: Set branch
+        required: true
+        type: string
+        default: test
 
 env:
   DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
