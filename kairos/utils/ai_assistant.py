@@ -11,9 +11,9 @@ import json
 import time
 import re
 
-client = OpenAI(default_headers={"OpenAI-Beta": "assistants=v1"})
+client = OpenAI(default_headers={"OpenAI-Beta": "assistants=v2"})
 
-def ask_ai(case_id,event_log_id,question):
+def ask_ai(case_id, event_log_id, question):
     thread_id = get_case_thread_id(case_id)
     case_instance = cases_db.get_case_structure(case_id)
     
@@ -22,14 +22,19 @@ def ask_ai(case_id,event_log_id,question):
     # Create a user message
     current_app.logger.info(f' Thread: {thread_id}')
     client.beta.threads.messages.create(
-            thread_id=thread_id,
-            role="user",
-            content=question,
-        )
-    current_app.logger.info(f' Added message to thread')
-    # Create a run
-    instructions=ASSISTANT_DATA.instructions(event_logs_db_structure=event_log_instance,cases_db_structure=case_instance,event_log_id=event_log_id, case_id=case_id)
-    
+        thread_id=thread_id,
+        role="user",
+        content=question
+    )
+    current_app.logger.info(f'Added message to thread')
+
+    instructions = ASSISTANT_DATA.instructions(
+        event_logs_db_structure=event_log_instance,
+        cases_db_structure=case_instance,
+        event_log_id=event_log_id,
+        case_id=case_id
+    )
+
     run = client.beta.threads.runs.create(
         thread_id=thread_id,
         assistant_id=current_app.config.get('OPENAI_ASSISTANT_ID'),
@@ -40,11 +45,9 @@ def ask_ai(case_id,event_log_id,question):
     rate_limit_exceeded_iterations = 0
     while True:
         # Retrieve run
-        run = client.beta.threads.runs.retrieve(
-            thread_id=thread_id,
-            run_id=run_id,
-        )
-        current_app.logger.info(f'Run status {run.status}')
+        run = client.beta.threads.runs.retrieve(thread_id=thread_id, run_id=run_id)
+        current_app.logger.info(f'Run status: {run.status}')
+
         if run.status == "completed":
             break
         elif run.status == "requires_action":
@@ -175,13 +178,11 @@ def format_message(message):
         "role": message.role,
         "content": message.content[0].text.value
     }
-    return formatted_message
 
 def modify_assistant():
     client.beta.assistants.update(
         assistant_id=current_app.config.get('OPENAI_ASSISTANT_ID'),
-        instructions=ASSISTANT_DATA.instructions,
-        file_ids=[]
+        instructions=ASSISTANT_DATA.instructions
     )
 
 def convert_to_json(json_string):
