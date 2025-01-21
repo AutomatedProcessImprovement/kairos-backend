@@ -29,8 +29,8 @@ def ask_ai(case_id, event_log_id, question):
     current_app.logger.info(f'Added message to thread')
 
     instructions = ASSISTANT_DATA.instructions(
-        event_logs_db_structure=event_log_instance,
-        cases_db_structure=case_instance,
+        event_logs_db_structure=event_log_instance or {},
+        cases_db_structure=case_instance or {},
         event_log_id=event_log_id,
         case_id=case_id
     )
@@ -145,23 +145,26 @@ def ask_ai(case_id, event_log_id, question):
     if len(messages.data) > 0:
         last_message = messages.data[0]
         return format_message(last_message)
+    else:
+        return {"error": "No response received from the assistant."}
 
-def get_messages_by_case_id(case_id,last_message=None):
+def get_messages_by_case_id(case_id, last_message=None):
     thread_id = get_case_thread_id(case_id)
-    
-    thread_messages = thread_messages = client.beta.threads.messages.list(thread_id,limit=50,after=last_message,order='asc')
+    thread_messages = client.beta.threads.messages.list(
+        thread_id=thread_id,
+        limit=50,
+        after=last_message if last_message else None,
+        order='asc'
+    )
     formatted_messages = [format_message(message) for message in thread_messages]
-
     return list(formatted_messages)
 
 def get_case_thread_id(case_id):
     case_instance = cases_db.get_case(case_id)
     thread_id = case_instance.get('thread_id')
-    
     if not thread_id:
         thread_id = client.beta.threads.create().id
-        cases_db.update_case_thread_id(case_id,thread_id)
-
+        cases_db.update_case_thread_id(case_id, thread_id)
     return thread_id
 
 def delete_case_thread_id(case_id):
@@ -173,7 +176,7 @@ def delete_case_thread_id(case_id):
         cases_db.update_case_thread_id(case_id,None)
 
 def format_message(message):
-    formatted_message = {
+    return {
         "id": message.id,
         "role": message.role,
         "content": message.content[0].text.value
@@ -186,13 +189,8 @@ def modify_assistant():
     )
 
 def convert_to_json(json_string):
-    if not json_string:
-        return {}
-
-    json_string = json_string.replace('True', 'true').replace('False', 'false').replace('None', 'null')
-
     try:
         return json.loads(json_string)
-    except JSONDecodeError as e:
+    except (JSONDecodeError, TypeError) as e:
         current_app.logger.error(f"JSON decoding error: {str(e)}")
         return {}
